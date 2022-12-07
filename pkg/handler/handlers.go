@@ -16,8 +16,9 @@ func NewHandler(services *service.Service) *Handler {
 func (h *Handler) InitRoutes() *echo.Echo {
 	router := echo.New()
 	//router.GET("/swagger/server/*", echoSwagger.WrapHandler)
+	api := router.Group("/api")
 
-	auth := router.Group("/auth")
+	auth := api.Group("/auth")
 	{
 		auth.POST("/sign-up", h.SignUp)
 		auth.POST("/sign-in", h.SignIn)
@@ -26,7 +27,6 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		//ChangeIcon
 	}
 
-	api := router.Group("/api")
 	users := api.Group("/users/:id")
 	{
 		users.GET("/chats", h.GetUserChats)
