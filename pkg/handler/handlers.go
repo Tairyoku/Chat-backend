@@ -3,6 +3,7 @@ package handler
 import (
 	"cmd/pkg/service"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type Handler struct {
@@ -15,6 +16,7 @@ func NewHandler(services *service.Service) *Handler {
 
 func (h *Handler) InitRoutes() *echo.Echo {
 	router := echo.New()
+	router.Use(middleware.CORS())
 	//router.GET("/swagger/server/*", echoSwagger.WrapHandler)
 	api := router.Group("/api")
 

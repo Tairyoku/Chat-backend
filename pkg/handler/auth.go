@@ -49,8 +49,15 @@ func (h *Handler) SignUp(c echo.Context) error {
 		NewErrorResponse(c, http.StatusInternalServerError, "something went wrong")
 		return nil
 	}
+	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
+	if err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
+		return nil
+	}
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"id": id})
+		"id":    id,
+		"token": token,
+	})
 	if errRes != nil {
 		return errRes
 	}
@@ -92,7 +99,8 @@ func (h *Handler) SignIn(c echo.Context) error {
 		return nil
 	}
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token})
+		"token": token,
+	})
 	if errRes != nil {
 		return errRes
 	}
