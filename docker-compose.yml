@@ -1,0 +1,55 @@
+version: '3'
+services:
+    db:
+        container_name: chat_db
+        image: 'mysql:8.0'
+        environment: 
+            - MYSQL_DATABASE=chatDB
+            - MYSQL_ROOT_PASSWORD=@root
+            - MYSQL_USER=mysql
+            - MYSQL_PASSWORD=@root
+            - DATABASE_HOST=db
+            - LC_ALL=C.UTF-8
+            - LANG=C.UTF-8
+        ports:
+            - "3307:3306"
+        volumes:
+            - mysql:/var/lib/mysql
+#            - ./data:/var/lib/mysql
+            - ./sql:/docker-entrypoint-initdb.d
+    api:
+        build: .
+        restart: on-failure
+        depends_on: 
+            - db
+        links:
+            - db
+        environment: 
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_NAME=chatDB
+            - DB_USER=root
+            - DB_PASS=@root
+        ports:
+            - 8000:8000
+volumes:
+    mysql:
+#    webserver:
+#        image: nginx:alpine
+#        container_name: "${DOCKER_PREFIX}-server"
+#        restart: unless-stopped
+#        tty: true
+#        depends_on:
+#            - app
+#        ports:
+#            - "80:80"
+#        volumes:
+#            - ./app:/var/www
+#            - ./docker/nginx/local.conf:/etc/nginx/conf.d/default.conf
+#
+#            - /etc/letsencrypt:/etc/letsencrypt/live/laravel.loc/
+#        networks:
+#            - app-network
+
+
+
