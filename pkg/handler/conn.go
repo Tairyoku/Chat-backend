@@ -3,7 +3,6 @@ package handler
 import (
 	"github.com/gorilla/websocket"
 	"log"
-	_ "cmd"
 	"net/http"
 	"time"
 )
