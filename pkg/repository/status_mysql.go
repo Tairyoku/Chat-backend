@@ -2,7 +2,8 @@ package repository
 
 import (
 	"cmd/pkg/repository/models"
-	"gorm.io/gorm"
+	"fmt"
+	"github.com/jinzhu/gorm"
 )
 
 type StatusRepository struct {
@@ -38,36 +39,56 @@ func (s *StatusRepository) DeleteStatus(status models.Status) error {
 
 func (s *StatusRepository) GetFriends(userId int) ([]int, error) {
 	var usersId []int
-	err := s.db.Select(StatusesTable, "sender_id").Where("relationship = ? and recipient_id = ?",
-		StatusFriends, userId).Select(StatusesTable, "recipient_id").Where("relationship = ? and sender_id = ?",
+	tx := s.db.Begin()
+	err := tx.Table(StatusesTable).Select("sender_id").Where("relationship = ? and recipient_id = ?",
 		StatusFriends, userId).Find(&usersId).Error
-	return usersId, err
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	result := usersId
+	errt := tx.Table(StatusesTable).Select("recipient_id").Where("relationship = ? and sender_id = ?",
+		StatusFriends, userId).Find(&usersId).Error
+	if errt != nil {
+		tx.Rollback()
+		return nil, errt
+	}
+	for i := range usersId {
+		result = append(result, usersId[i])
+	}
+	return result, tx.Commit().Error
 }
 
 func (s *StatusRepository) GetBlackList(userId int) ([]int, error) {
 	var usersId []int
-	err := s.db.Select(StatusesTable, "recipient_id").Where("relationship = ? and sender_id = ?",
+	err := s.db.Table(StatusesTable).Select("recipient_id").Where("relationship = ? and sender_id = ?",
 		StatusBL, userId).Find(&usersId).Error
 	return usersId, err
 }
 
 func (s *StatusRepository) GetBlackListToUser(userId int) ([]int, error) {
 	var usersId []int
-	err := s.db.Select(StatusesTable, "sender_id").Where("relationship = ? and recipient_id = ?",
+	err := s.db.Table(StatusesTable).Select("sender_id").Where("relationship = ? and recipient_id = ?",
 		StatusBL, userId).Find(&usersId).Error
 	return usersId, err
 }
 
 func (s *StatusRepository) GetSentInvites(userId int) ([]int, error) {
 	var usersId []int
-	err := s.db.Select(StatusesTable, "recipient_id").Where("relationship = ? and sender_id = ?",
+	err := s.db.Table(StatusesTable).Select("recipient_id").Where("relationship = ? and sender_id = ?",
 		StatusInvitation, userId).Find(&usersId).Error
 	return usersId, err
 }
 
 func (s *StatusRepository) GetInvites(userId int) ([]int, error) {
 	var usersId []int
-	err := s.db.Select(StatusesTable, "sender_id").Where("relationship = ? and recipient_id = ?",
+	err := s.db.Table(StatusesTable).Select("sender_id").Where("relationship = ? and recipient_id = ?",
 		StatusInvitation, userId).Find(&usersId).Error
 	return usersId, err
+}
+
+func (s *StatusRepository) SearchUser(username string) ([]models.User, error) {
+	var user []models.User
+	err := s.db.Table(UsersTable).Select("id", "username").Where("username LIKE ?", fmt.Sprintf("%%%s%%", username)).Find(&user).Error
+	return user, err
 }

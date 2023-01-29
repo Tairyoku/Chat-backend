@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/gorilla/websocket"
 	"log"
+	_ "cmd"
 	"net/http"
 	"time"
 )
@@ -35,10 +36,9 @@ func ServeWs(w http.ResponseWriter, r *http.Request, roomId string) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
-
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println((err.Error()))
+		log.Println(err.Error())
 		return
 	}
 	c := &connection{send: make(chan []byte, 256), ws: ws}

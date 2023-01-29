@@ -16,6 +16,8 @@ const (
 	StatusFriends     = "friends"
 	StatusBL          = "black_list"
 	StatusInvitation  = "invitation"
+	ChatPrivate       = "private"
+	ChatPublic        = "public"
 )
 
 type Config struct {
@@ -27,7 +29,7 @@ type Config struct {
 }
 
 func NewRepositoryDB(cnf Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s@%s%s(%s)/%s", cnf.Username, cnf.Password, cnf.Host, cnf.Url, cnf.DBName)
+	dsn := fmt.Sprintf("%s@%s%s(%s)/%s?parseTime=true", cnf.Username, cnf.Password, cnf.Host, cnf.Url, cnf.DBName)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err

@@ -2,8 +2,20 @@ package handler
 
 import (
 	"cmd/pkg/repository/models"
+	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/muesli/smartcrop"
+	"github.com/muesli/smartcrop/nfnt"
+	"github.com/nfnt/resize"
+	"image"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
+	"io"
+	"math"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // SignUp godoc
@@ -32,31 +44,25 @@ func (h *Handler) SignUp(c echo.Context) error {
 			return nil
 		}
 
-		//name is not empty
-		if len(input.Name) == 0 {
-			NewErrorResponse(c, http.StatusBadRequest, "You must enter a name")
-			return nil
-		}
-
 		// password length
 		if len(input.Password) < 6 {
 			NewErrorResponse(c, http.StatusBadRequest, "Password must be at least 6 symbols")
 			return nil
 		}
 	}
-	id, errCreate := h.services.Authorization.CreateUser(input)
-	if errCreate != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, "something went wrong")
+	id, errUser := h.services.Authorization.CreateUser(input)
+	if errUser != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "created user error")
 		return nil
 	}
 	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
 	if err != nil {
-		NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
+		NewErrorResponse(c, http.StatusBadRequest, "generate token error")
 		return nil
 	}
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"id":    id,
 		"token": token,
+		"id":    id,
 	})
 	if errRes != nil {
 		return errRes
@@ -98,8 +104,230 @@ func (h *Handler) SignIn(c echo.Context) error {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
 		return nil
 	}
+	fmt.Println(input)
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+func (h *Handler) GetMe(c echo.Context) error {
+	userId := c.Get(userCtx)
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"id": userId,
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+type ChangePassword struct {
+	OldPassword string `json:"old_password" form:"old_password"  binding:"required"`
+	NewPassword string `json:"new_password" form:"new_password"  binding:"required"`
+}
+
+func (h *Handler) ChangePassword(c echo.Context) error {
+	//Отримуємо власний ID з контексту
+	userId := c.Get(userCtx).(int)
+
+	//Отримуємо актуальний та новий паролі
+	var passwords ChangePassword
+	if errReq := c.Bind(&passwords); errReq != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
+		return nil
+	}
+
+	//Отримуємо дані активного користувача
+	user, errU := h.services.Authorization.GetUserById(userId)
+	if errU != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
+		return nil
+	}
+
+	//Перевіряємо вірність введеного паролю
+	_, errCheck := h.services.Authorization.GenerateToken(user.Username, passwords.OldPassword)
+	if errCheck != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "wrong password error")
+		return nil
+	}
+
+	//Оновлюємо пароль у БД
+	user.Password = passwords.NewPassword
+	err := h.services.Authorization.UpdatePassword(user)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return nil
+	}
+
+	//Відгук сервера
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "password changed",
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+func (h *Handler) ChangeUsername(c echo.Context) error {
+	//Отримуємо власний ID з контексту
+	userId := c.Get(userCtx).(int)
+
+	//Отримуємо новий нікнейм
+	var username models.User
+	if errReq := c.Bind(&username); errReq != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
+		return nil
+	}
+
+	//Отримуємо дані активного користувача
+	user, errU := h.services.Authorization.GetUserById(userId)
+	if errU != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
+		return nil
+	}
+
+	//Перевіряємо нікнейм на унікальність
+	err := h.services.Authorization.CheckUsername(username.Username)
+	if err == nil {
+		NewErrorResponse(c, http.StatusBadRequest, "username used error")
+		return nil
+	}
+
+	//Оновлюємо нікнейм у БД
+	user.Username = username.Username
+	errPut := h.services.Authorization.UpdateData(user)
+	if errPut != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return nil
+	}
+
+	//Відгук сервера
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "username changed",
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+func (h *Handler) ChangeIcon(c echo.Context) error {
+	//Отримуємо власний ID з контексту
+	userId := c.Get(userCtx).(int)
+
+	//Обмежуємо розмір завантажуваних файлів
+	c.Request().ParseMultipartForm(10 << 20)
+
+	//Отримуємо файл зображення
+	file, err := c.FormFile("image")
+	if err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect file error")
+		return err
+	}
+
+	//Відкриваємо дані файлу
+	handler, err := file.Open()
+	if err != nil {
+		NewErrorResponse(c, http.StatusConflict, "open file error")
+		return err
+	}
+	defer handler.Close()
+
+	//Створюємо порожні файли за необхідних розташуванням
+	tempFile, err := os.CreateTemp("uploads", "upload-*.jpeg")
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "create file error")
+		return err
+	}
+	resFile, err := os.Create(fmt.Sprintf("uploads\\resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads\\")))
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "create file error")
+		return err
+	}
+	defer tempFile.Close()
+	defer resFile.Close()
+
+	//Розкодування зображення за типом
+	var img image.Image
+	imgFmt := strings.Split(file.Filename, ".")
+
+	switch imgFmt[len(imgFmt)-1] {
+	case "jpeg":
+		img, err = jpeg.Decode(handler)
+		break
+	case "jpg":
+		img, err = jpeg.Decode(handler)
+		break
+	case "png":
+		img, err = png.Decode(handler)
+		break
+	case "gif":
+		img, err = gif.Decode(handler)
+		break
+	default:
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect file type error")
+		return nil
+	}
+
+	//Приведення зображень до необхідних форми і розмірів
+	var crop = []int{10, 10}
+	if crop != nil && len(crop) == 2 {
+		analyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
+		topCrop, _ := analyzer.FindBestCrop(img, crop[0], crop[1])
+		type SubImager interface {
+			SubImage(r image.Rectangle) image.Image
+		}
+		img = img.(SubImager).SubImage(topCrop)
+	}
+	imgWidth := uint(math.Min(float64(100), float64(img.Bounds().Max.X)))
+	resizedImg := resize.Resize(imgWidth, 0, img, resize.Lanczos3)
+
+	//Збереження зображень у новосотворених файлах
+	fileBytes, err := io.ReadAll(handler)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	tempFile.Write(fileBytes)
+
+	err = jpeg.Encode(resFile, resizedImg, nil)
+
+	//Отримуємо дані активного користувача
+	user, errU := h.services.Authorization.GetUserById(userId)
+	if errU != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
+		return nil
+	}
+
+	//Замінюємо дані у БД
+	var oldIcon = user.Icon
+	user.Icon = strings.TrimPrefix(tempFile.Name(), "uploads\\")
+	errPut := h.services.Authorization.UpdateData(user)
+	if errPut != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "update icon error")
+		return nil
+	}
+
+	//Видалення застарілих файлів
+	if len(oldIcon) != 0 {
+		if err := os.Remove(fmt.Sprintf("uploads/%s", oldIcon)); err != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "delete icon error")
+			return nil
+		}
+		if err := os.Remove(fmt.Sprintf("uploads/resize-%s", oldIcon)); err != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "delete icon error")
+			return nil
+		}
+	}
+
+	//Відгук сервера
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "icon changed",
 	})
 	if errRes != nil {
 		return errRes

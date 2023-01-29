@@ -8,21 +8,60 @@ import (
 	"net/http"
 )
 
-func (h *Handler) GetUserChats(c echo.Context) error {
+func (h *Handler) GetUserById(c echo.Context) error {
 	userId, errParam := GetParam(c, ParamId)
 	if errParam != nil {
 		return errParam
 	}
-	chats, err := h.services.Chat.GetUserChats(userId)
+	user, err := h.services.Authorization.GetUserById(userId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
 	}
 
-	_, errEnCd := json.Marshal(chats)
+	_, errEnCd := json.Marshal(user)
 	if errEnCd != nil {
 		return errEnCd
 	}
-	errRes := c.JSON(http.StatusOK, chats)
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"user": user,
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+func (h *Handler) GetUserPublicChats(c echo.Context) error {
+	userId, errParam := GetParam(c, ParamId)
+	if errParam != nil {
+		return errParam
+	}
+	chats, err := h.services.Chat.GetPublicChats(userId)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+	}
+
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": chats,
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+func (h *Handler) GetUserPrivateChats(c echo.Context) error {
+	userId, errParam := GetParam(c, ParamId)
+	if errParam != nil {
+		return errParam
+	}
+	chats, err := h.services.Chat.GetPrivateChats(userId)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+	}
+
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": chats,
+	})
 	if errRes != nil {
 		return errRes
 	}
@@ -78,6 +117,34 @@ func (h *Handler) DeleteFriend(c echo.Context) error {
 
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "friend deleted",
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+func (h *Handler) CancelInvite(c echo.Context) error {
+	recipientId, errParam := GetParam(c, ParamId)
+	if errParam != nil {
+		return errParam
+	}
+	senderId, errId := GetUserId(c)
+	if errId != nil {
+		return errId
+	}
+	var status = models.Status{
+		SenderId:     senderId,
+		RecipientId:  recipientId,
+		Relationship: repository.StatusInvitation,
+	}
+	err := h.services.Status.DeleteStatus(status)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+	}
+
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "invite deleted",
 	})
 	if errRes != nil {
 		return errRes
@@ -207,13 +274,19 @@ func (h *Handler) GetFriends(c echo.Context) error {
 	friends, err := h.services.Status.GetFriends(userId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
 	}
-
-	_, errEnCd := json.Marshal(friends)
-	if errEnCd != nil {
-		return errEnCd
+	var list []models.User
+	for _, number := range friends {
+		user, errUser := h.services.Authorization.GetUserById(number)
+		if errUser != nil {
+			return errParam
+		}
+		list = append(list, user)
 	}
-	errRes := c.JSON(http.StatusOK, friends)
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": list,
+	})
 	if errRes != nil {
 		return errRes
 	}
@@ -228,13 +301,20 @@ func (h *Handler) GetBlackList(c echo.Context) error {
 	bl, err := h.services.Status.GetBlackList(userId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
 	}
-
-	_, errEnCd := json.Marshal(bl)
-	if errEnCd != nil {
-		return errEnCd
+	var list []models.User
+	for _, number := range bl {
+		user, errUser := h.services.Authorization.GetUserById(number)
+		if errUser != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "error get user")
+			return errParam
+		}
+		list = append(list, user)
 	}
-	errRes := c.JSON(http.StatusOK, bl)
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": list,
+	})
 	if errRes != nil {
 		return errRes
 	}
@@ -249,13 +329,20 @@ func (h *Handler) GetBlackListToUser(c echo.Context) error {
 	ubl, err := h.services.Status.GetBlackListToUser(userId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
 	}
 
-	_, errEnCd := json.Marshal(ubl)
-	if errEnCd != nil {
-		return errEnCd
+	var list []models.User
+	for _, number := range ubl {
+		user, errUser := h.services.Authorization.GetUserById(number)
+		if errUser != nil {
+			return errParam
+		}
+		list = append(list, user)
 	}
-	errRes := c.JSON(http.StatusOK, ubl)
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": list,
+	})
 	if errRes != nil {
 		return errRes
 	}
@@ -270,13 +357,20 @@ func (h *Handler) GetSentInvites(c echo.Context) error {
 	invited, err := h.services.Status.GetSentInvites(userId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
 	}
 
-	_, errEnCd := json.Marshal(invited)
-	if errEnCd != nil {
-		return errEnCd
+	var list []models.User
+	for _, number := range invited {
+		user, errUser := h.services.Authorization.GetUserById(number)
+		if errUser != nil {
+			return errParam
+		}
+		list = append(list, user)
 	}
-	errRes := c.JSON(http.StatusOK, invited)
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": list,
+	})
 	if errRes != nil {
 		return errRes
 	}
@@ -291,13 +385,38 @@ func (h *Handler) GetInvites(c echo.Context) error {
 	invitations, err := h.services.Status.GetInvites(userId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
 	}
+	var list []models.User
+	for _, number := range invitations {
+		user, errUser := h.services.Authorization.GetUserById(number)
+		if errUser != nil {
+			return errParam
+		}
+		list = append(list, user)
+	}
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": list,
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
 
-	_, errEnCd := json.Marshal(invitations)
-	if errEnCd != nil {
-		return errEnCd
+func (h *Handler) SearchUser(c echo.Context) error {
+	username := c.Param(Username)
+	if len(username) == 0 {
+		return nil
 	}
-	errRes := c.JSON(http.StatusOK, invitations)
+	users, err := h.services.Status.SearchUser(username)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
+	}
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": users,
+	})
 	if errRes != nil {
 		return errRes
 	}

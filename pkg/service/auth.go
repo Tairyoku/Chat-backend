@@ -33,6 +33,10 @@ func (a *AuthService) CreateUser(user models.User) (int, error) {
 	return a.repository.CreateUser(user)
 }
 
+func (a *AuthService) GetUserById(userId int) (models.User, error) {
+	return a.repository.GetUserById(userId)
+}
+
 func (a *AuthService) CheckUsername(username string) error {
 	return a.repository.CheckUsername(username)
 }
@@ -42,7 +46,6 @@ func (a *AuthService) GenerateToken(username, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
@@ -70,6 +73,27 @@ func (a *AuthService) ParseToken(accessToken string) (int, error) {
 		return 0, errors.New("token claims are not of type *tokenClaims")
 	}
 	return claims.UserId, nil
+}
+
+func (a *AuthService) UpdatePassword(user models.User) error {
+	user.Password = CreatePasswordHash(user.Password)
+	err := a.repository.UpdateUser(user)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *AuthService) UpdateData(user models.User) error {
+	err := a.repository.UpdateUser(user)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *AuthService) GetByName(name string) (models.User, error) {
+	return a.repository.GetByName(name)
 }
 
 func CreatePasswordHash(password string) string {

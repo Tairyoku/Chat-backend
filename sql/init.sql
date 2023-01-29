@@ -2,7 +2,6 @@ create table if not exists users(
         id bigint primary key auto_increment not null,
         username varchar(50) not null,
     password_hash varchar(100) not null,
-    icon varchar(100),
     unique(id, username)
     )
     engine = InnoDB
@@ -31,7 +30,7 @@ create table if not exists messages(
     engine = InnoDB
     default charset = utf8;
 
-create table if not exists users_relationship(
+create table if not exists statuses(
       id bigint primary key auto_increment not null,
       sender_id bigint not null,
     recipient_id bigint  not null,

@@ -10,15 +10,15 @@ import (
 
 func (h *Handler) CreateMessage(c echo.Context) error {
 	var msg models.Message
-	errReq := GetRequest(c, msg)
-	if errReq != nil {
-		return errReq
+	if err := c.Bind(&msg); err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
+		return nil
 	}
-	if msg.Body == "" {
+	if msg.Text == "" {
 		NewErrorResponse(c, http.StatusBadRequest, "body is empty")
 		return nil
 	}
-	chatId, errParam := GetParam(c, ParamId)
+	chatId, errParam := GetParam(c, ChatId)
 	if errParam != nil {
 		return errParam
 	}
@@ -27,11 +27,12 @@ func (h *Handler) CreateMessage(c echo.Context) error {
 		return errId
 	}
 	msg.ChatId = chatId
-	msg.UserId = userId
+	msg.Author = userId
 	msg.SentAt = time.Now()
 	id, err := h.services.Message.Create(msg)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return nil
 	}
 
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
@@ -74,11 +75,10 @@ func (h *Handler) GetAllMessages(c echo.Context) error {
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
 	}
-	_, errEnCd := json.Marshal(msg)
-	if errEnCd != nil {
-		return errEnCd
-	}
-	errRes := c.JSON(http.StatusOK, msg)
+
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": msg,
+	})
 	if errRes != nil {
 		return errRes
 	}

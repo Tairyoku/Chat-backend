@@ -48,3 +48,7 @@ func (s *StatusService) GetSentInvites(userId int) ([]int, error) {
 func (s *StatusService) GetInvites(userId int) ([]int, error) {
 	return s.repository.GetInvites(userId)
 }
+
+func (s *StatusService) SearchUser(username string) ([]models.User, error) {
+	return s.repository.SearchUser(username)
+}

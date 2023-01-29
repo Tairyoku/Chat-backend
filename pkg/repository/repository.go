@@ -2,13 +2,16 @@ package repository
 
 import (
 	"cmd/pkg/repository/models"
-	"gorm.io/gorm"
+	"github.com/jinzhu/gorm"
 )
 
 type Authorization interface {
 	CreateUser(user models.User) (int, error)
 	GetUser(username, password string) (models.User, error)
 	CheckUsername(username string) error
+	UpdateUser(user models.User) error
+	GetUserById(userId int) (models.User, error)
+	GetByName(name string) (models.User, error)
 }
 
 type Chat interface {
@@ -18,7 +21,10 @@ type Chat interface {
 	AddUser(users models.ChatUsers) (int, error)
 	DeleteUser(userId, chatId int) error
 	GetUsers(chatId int) ([]models.User, error)
-	GetUserChats(userId int) ([]models.Chat, error)
+	GetPrivateChats(userId int) ([]models.Chat, error)
+	GetPublicChats(userId int) ([]models.Chat, error)
+	CheckPrivates(firstUser, secondUser int) ([]int, error)
+	SearchChat(name string) ([]models.Chat, error)
 }
 
 type Status interface {
@@ -31,12 +37,14 @@ type Status interface {
 	GetBlackListToUser(userId int) ([]int, error)
 	GetSentInvites(userId int) ([]int, error)
 	GetInvites(userId int) ([]int, error)
+	SearchUser(username string) ([]models.User, error)
 }
 
 type Message interface {
 	Create(msg models.Message) (int, error)
 	Get(msgId int) (models.Message, error)
 	GetAll(chatId int) ([]models.Message, error)
+	DeleteAll(chatId int) error
 }
 
 type Repository struct {

@@ -2,7 +2,7 @@ package repository
 
 import (
 	"cmd/pkg/repository/models"
-	"gorm.io/gorm"
+	"github.com/jinzhu/gorm"
 )
 
 type MessageRepository struct {
@@ -26,6 +26,11 @@ func (m *MessageRepository) Get(msgId int) (models.Message, error) {
 
 func (m *MessageRepository) GetAll(chatId int) ([]models.Message, error) {
 	var msg []models.Message
-	err := m.db.Table(MessagesTable).Where("chat_id = ?", chatId).Find(&models.Message{}).Error
+	err := m.db.Table(MessagesTable).Where("chat_id = ?", chatId).Find(&msg).Error
 	return msg, err
+}
+
+func (m *MessageRepository) DeleteAll(chatId int) error {
+	err := m.db.Table(MessagesTable).Where("chat_id = ?", chatId).Delete(&models.Message{}).Error
+	return err
 }

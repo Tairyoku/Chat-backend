@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -14,6 +13,8 @@ const (
 	userCtx             = "userId"
 	ParamId             = "id"
 	ChatId              = "chatId"
+	Username            = "username"
+	ChatName            = "name"
 )
 
 func (h *Handler) userIdentify(next echo.HandlerFunc) echo.HandlerFunc {
@@ -24,13 +25,14 @@ func (h *Handler) userIdentify(next echo.HandlerFunc) echo.HandlerFunc {
 			return nil
 		}
 
-		headerParts := strings.Split(header, " ")
-		if len(headerParts) != 2 {
-			NewErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
-			return nil
-		}
+		//headerParts := strings.Split(header, " ")
+		//if len(headerParts) != 2 {
+		//	NewErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
+		//	return nil
+		//}
 
-		userId, err := h.services.Authorization.ParseToken(headerParts[1])
+		userId, err := h.services.Authorization.ParseToken(header)
+		//userId, err := h.services.Authorization.ParseToken(headerParts[1])
 
 		if err != nil {
 			NewErrorResponse(c, http.StatusUnauthorized, err.Error())
@@ -71,50 +73,3 @@ func GetRequest(c echo.Context, i interface{}) error {
 	}
 	return nil
 }
-
-//
-//func SetupConfig() *oauth2.Config {
-//	googleOauthConfig := &oauth2.Config{
-//		ClientID:     "64460222459-j6mfme4oj54o4vasuifrlcip3l5ohdkk.apps.googleusercontent.com",
-//		ClientSecret: "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",
-//		Endpoint:     google.Endpoint,
-//		RedirectURL:  "http://localhost:8080/google/callback",
-//		Scopes: []string{
-//			"https://www.googleapis.com/auth/userinfo.email",   //See your primary Google Account email address
-//			"https://www.googleapis.com/auth/userinfo.profile", //See your personal info, including any personal info you've made publicly available
-//		},
-//	}
-//	return googleOauthConfig
-//}
-//
-//func (h *Handler) GoogleSignUp(c echo.Context, input models.User) error {
-//	id, err := h.services.Authorization.CreateUser(input)
-//
-//	if err != nil {
-//		NewErrorResponse(c, http.StatusInternalServerError, "something went wrong")
-//		return nil
-//	}
-//	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-//		"id": id,
-//	})
-//	if errRes != nil {
-//		return errRes
-//	}
-//	return nil
-//}
-//
-//func (h *Handler) GoogleSignIn(c echo.Context, input models.User) error {
-//	// if username is required, to login and to generate token
-//	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
-//	if err != nil {
-//		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-//		return nil
-//	}
-//	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-//		"token": token,
-//	})
-//	if errRes != nil {
-//		return errRes
-//	}
-//	return nil
-//}

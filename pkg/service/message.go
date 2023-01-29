@@ -24,3 +24,7 @@ func (m *MessageService) GetAll(chatId int) ([]models.Message, error) {
 func (m *MessageService) Get(msgId int) (models.Message, error) {
 	return m.repository.Get(msgId)
 }
+
+func (m *MessageService) DeleteAll(chatId int) error {
+	return m.repository.DeleteAll(chatId)
+}

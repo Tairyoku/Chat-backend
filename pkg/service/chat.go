@@ -34,6 +34,17 @@ func (c *ChatService) GetUsers(chatId int) ([]models.User, error) {
 	return c.repository.GetUsers(chatId)
 }
 
-func (c *ChatService) GetUserChats(userId int) ([]models.Chat, error) {
-	return c.repository.GetUserChats(userId)
+func (c *ChatService) GetPrivateChats(userId int) ([]models.Chat, error) {
+	return c.repository.GetPrivateChats(userId)
+}
+
+func (c *ChatService) GetPublicChats(userId int) ([]models.Chat, error) {
+	return c.repository.GetPublicChats(userId)
+}
+
+func (c *ChatService) CheckPrivates(firstUser, secondUser int) ([]int, error) {
+	return c.repository.CheckPrivates(firstUser, secondUser)
+}
+func (c *ChatService) SearchChat(name string) ([]models.Chat, error) {
+	return c.repository.SearchChat(name)
 }
