@@ -2,6 +2,7 @@ package repository
 
 import (
 	"cmd/pkg/repository/models"
+	"fmt"
 	"github.com/jinzhu/gorm"
 )
 
@@ -20,7 +21,9 @@ func (a *AuthRepository) CreateUser(user models.User) (int, error) {
 
 func (a *AuthRepository) GetUserById(userId int) (models.User, error) {
 	var user models.User
-	err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
+	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE id = ?", UsersTable)
+	err := a.db.Raw(query, userId).Scan(&user).Error
+	//err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
 	return user, err
 }
 
@@ -46,6 +49,8 @@ func (a *AuthRepository) CheckUsername(username string) error {
 
 func (a *AuthRepository) GetByName(name string) (models.User, error) {
 	var user models.User
-	err := a.db.Table(UsersTable).Select("id", "username", "icon").Where("username = ?", name).First(&user).Error
+	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE username = ?", UsersTable)
+	err := a.db.Raw(query, name).Scan(&user).Error
+	//err := a.db.Table(UsersTable).Select("id", "username", "icon").Where("username = ?", name).First(&user).Error
 	return user, err
 }

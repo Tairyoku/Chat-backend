@@ -37,6 +37,7 @@ func (h *Handler) SignUp(c echo.Context) error {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
+
 	{
 		//username is not empty
 		if len(input.Username) == 0 {
@@ -50,6 +51,13 @@ func (h *Handler) SignUp(c echo.Context) error {
 			return nil
 		}
 	}
+
+	errCheck := h.services.Authorization.CheckUsername(input.Username)
+	if errCheck == nil {
+		NewErrorResponse(c, http.StatusNotFound, "user found")
+		return nil
+	}
+
 	id, errUser := h.services.Authorization.CreateUser(input)
 	if errUser != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "created user error")
@@ -60,6 +68,7 @@ func (h *Handler) SignUp(c echo.Context) error {
 		NewErrorResponse(c, http.StatusBadRequest, "generate token error")
 		return nil
 	}
+
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
 		"id":    id,
@@ -104,7 +113,7 @@ func (h *Handler) SignIn(c echo.Context) error {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
 		return nil
 	}
-	fmt.Println(input)
+	fmt.Println(token)
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
 	})

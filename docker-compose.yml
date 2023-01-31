@@ -1,5 +1,14 @@
 version: '3'
 services:
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        restart: always
+        ports:
+            -   "8077:80"
+        environment:
+            - PMA_HOST=db
+        depends_on:
+            -   db
     db:
         container_name: chat_db
         image: 'mysql:8.0'
@@ -31,7 +40,7 @@ services:
             - DB_USER=root
             - DB_PASS=@root
         ports:
-            - 8000:8000
+            - "8000:8080"
 volumes:
     mysql:
 #    webserver:

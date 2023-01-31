@@ -6,6 +6,6 @@ COPY ./ ./
 #RUN go get -u github.com/jinzhu/gorm
 #RUN go get -u github.com/gorilla/mux
 #RUN go get -u github.com/gorilla/handlers
-RUN #o mod download
+RUN #go mod download
 RUN go build -o chat-main ./cmd/main.go
 CMD [ "./chat-main" ]

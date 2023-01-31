@@ -84,8 +84,8 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		users.DELETE("/deleteFromBlacklist", h.DeleteFromBlacklist)
 		//Видалити з друзів
 		users.DELETE("/deleteFriend", h.DeleteFriend)
-
 	}
+
 	chat := api.Group("/chats", h.userIdentify)
 	{
 		//Створити ПУБЛІЧНИЙ чат

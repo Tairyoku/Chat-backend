@@ -3,7 +3,6 @@ package handler
 import (
 	"cmd/pkg/repository"
 	"cmd/pkg/repository/models"
-	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -18,10 +17,14 @@ func (h *Handler) GetUserById(c echo.Context) error {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
 	}
 
-	_, errEnCd := json.Marshal(user)
-	if errEnCd != nil {
-		return errEnCd
-	}
+	// у БД була помилка з SearchUser, при SELECT("id", "username", "icon"), що sql: expected 1 arguments, got 3
+	//якщо SELECT * , то помилки нема
+	//та для безпеки, видаляється хеш паролю
+	user.Password = ""
+	//_, errEnCd := json.Marshal(user)
+	//if errEnCd != nil {
+	//	return errEnCd
+	//}
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"user": user,
 	})
@@ -49,6 +52,7 @@ func (h *Handler) GetUserPublicChats(c echo.Context) error {
 	}
 	return nil
 }
+
 func (h *Handler) GetUserPrivateChats(c echo.Context) error {
 	userId, errParam := GetParam(c, ParamId)
 	if errParam != nil {
@@ -276,6 +280,7 @@ func (h *Handler) GetFriends(c echo.Context) error {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
 		return err
 	}
+
 	var list []models.User
 	for _, number := range friends {
 		user, errUser := h.services.Authorization.GetUserById(number)
@@ -284,6 +289,7 @@ func (h *Handler) GetFriends(c echo.Context) error {
 		}
 		list = append(list, user)
 	}
+
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"list": list,
 	})
@@ -414,6 +420,14 @@ func (h *Handler) SearchUser(c echo.Context) error {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
 		return err
 	}
+
+	// у БД була помилка з SearchUser, при SELECT("id", "username", "icon"), що sql: expected 1 arguments, got 3
+	//якщо SELECT * , то помилки нема
+	//та для безпеки, видаляється хеш паролю
+	for _, user := range users {
+		user.Password = ""
+	}
+
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"list": users,
 	})
