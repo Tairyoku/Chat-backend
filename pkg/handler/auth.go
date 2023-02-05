@@ -31,13 +31,15 @@ import (
 // @Failure 	 500 	{object} ErrorResponse	 "something went wrong"
 // @Router       /auth/sign-up [post]
 func (h *Handler) SignUp(c echo.Context) error {
-	var input models.User
 
+	// Отримуємо дані з сайту (ім'я та пароль)
+	var input models.User
 	if errReq := c.Bind(&input); errReq != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
 
+	// Перевіряємо отримані дані
 	{
 		//username is not empty
 		if len(input.Username) == 0 {
@@ -52,23 +54,21 @@ func (h *Handler) SignUp(c echo.Context) error {
 		}
 	}
 
-	errCheck := h.services.Authorization.CheckUsername(input.Username)
-	if errCheck == nil {
-		NewErrorResponse(c, http.StatusNotFound, "user found")
+	// Створюємо нового користувача
+	id, errUser := h.services.Authorization.CreateUser(input)
+	if errUser != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "username is already used")
 		return nil
 	}
 
-	id, errUser := h.services.Authorization.CreateUser(input)
-	if errUser != nil {
-		NewErrorResponse(c, http.StatusBadRequest, "created user error")
-		return nil
-	}
+	// Генеруємо токен та шифруємо в ньому ID користувача
 	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
 	if err != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "generate token error")
 		return nil
 	}
 
+	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
 		"id":    id,
@@ -98,22 +98,33 @@ type SignInInput struct {
 // @Failure 	 500 	{object} ErrorResponse	 "something went wrong"
 // @Router       /auth/sign-in [post]
 func (h *Handler) SignIn(c echo.Context) error {
+
+	// Отримуємо дані з сайту (ім'я та пароль)
 	var input SignInInput
 	if err := c.Bind(&input); err != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
-	errCheck := h.services.Authorization.CheckUsername(input.Username)
+
+	//Перевіряємо чи існує користувач за його іменем
+	user, errCheck := h.services.Authorization.GetByName(input.Username)
 	if errCheck != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return nil
+	}
+	if user.Username == "" {
 		NewErrorResponse(c, http.StatusNotFound, "user not found")
 		return nil
 	}
+
+	// Генеруємо токен (якщо ім'я та пароль правильні)
 	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
 	if err != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
 		return nil
 	}
-	fmt.Println(token)
+
+	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
 	})
@@ -124,7 +135,11 @@ func (h *Handler) SignIn(c echo.Context) error {
 }
 
 func (h *Handler) GetMe(c echo.Context) error {
+
+	// Отримуємо ID активного користувача
 	userId := c.Get(userCtx)
+
+	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"id": userId,
 	})
@@ -200,10 +215,14 @@ func (h *Handler) ChangeUsername(c echo.Context) error {
 		return nil
 	}
 
-	//Перевіряємо нікнейм на унікальність
-	err := h.services.Authorization.CheckUsername(username.Username)
-	if err == nil {
-		NewErrorResponse(c, http.StatusBadRequest, "username used error")
+	//Перевіряємо чи існує користувач за його іменем
+	check, errCheck := h.services.Authorization.GetByName(username.Username)
+	if errCheck != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return nil
+	}
+	if check.Id != 0 {
+		NewErrorResponse(c, http.StatusNotFound, "username is used")
 		return nil
 	}
 
@@ -226,6 +245,7 @@ func (h *Handler) ChangeUsername(c echo.Context) error {
 }
 
 func (h *Handler) ChangeIcon(c echo.Context) error {
+
 	//Отримуємо власний ID з контексту
 	userId := c.Get(userCtx).(int)
 
@@ -283,7 +303,7 @@ func (h *Handler) ChangeIcon(c echo.Context) error {
 		return nil
 	}
 
-	//Приведення зображень до необхідних форми і розмірів
+	//Приведення зображень до необхідних форми й розмірів
 	var crop = []int{10, 10}
 	if crop != nil && len(crop) == 2 {
 		analyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
@@ -299,7 +319,6 @@ func (h *Handler) ChangeIcon(c echo.Context) error {
 	//Збереження зображень у новосотворених файлах
 	fileBytes, err := io.ReadAll(handler)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	tempFile.Write(fileBytes)

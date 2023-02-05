@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmd/pkg/handler"
+	"cmd/pkg/handler/websocket"
 	"cmd/pkg/repository"
 	"cmd/pkg/service"
 	"fmt"
@@ -42,9 +43,10 @@ func GetConnectionString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		user, password, host, port, dbName)
 }
+
 func main() {
 
-	go handler.Hub.Run()
+	go websocket.Hub.Run()
 	errEnv := godotenv.Load()
 	if errEnv != nil {
 		log.Fatal("Error loading .env file")

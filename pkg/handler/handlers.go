@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cmd/pkg/handler/websocket"
 	"cmd/pkg/service"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -14,8 +15,6 @@ func NewHandler(services *service.Service) *Handler {
 	return &Handler{services: services}
 }
 
-var Hub = NewHub(H)
-
 func (h *Handler) InitRoutes() *echo.Echo {
 	router := echo.New()
 	router.Use(middleware.CORS())
@@ -28,7 +27,7 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	//WebSocket
 	router.GET("/ws/:roomId", func(c echo.Context) error {
 		roomId := c.Param("roomId")
-		ServeWs(c.Response(), c.Request(), roomId)
+		websocket.ServeWs(c.Response(), c.Request(), roomId)
 		return nil
 	})
 
@@ -54,25 +53,19 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	//Пошук користувачів за нікнеймом
 	api.GET("/users/search/:username", h.SearchUser)
 	{
+
+		// МОЖНА ОБ'ЄДНАТИ ПУБЛІЧНІ ТА ПРИВАТНІ ЧАТИ
 		//Отримати усі ПУБЛІЧНІ чати користувача
 		users.GET("/public", h.GetUserPublicChats)
 		//Отримати усі ОСОБИСТІ чати користувача
 		users.GET("/private", h.GetUserPrivateChats)
 		//Отримати дані користувача за його ID
 		users.GET("", h.GetUserById)
-		//Отримати список друзів
-		users.GET("/friends", h.GetFriends)
-		//Отримати список заблокованих користувачів
-		users.GET("/blacklist", h.GetBlackList)
-		//Отримати список користувачів, що заблокували вас
-		users.GET("/onBlacklist", h.GetBlackListToUser)
-		//Отримати список користувачів, з якими ви бажаєте стати друзями
-		users.GET("/invites", h.GetSentInvites)
-		//Отримати список користувачів, які бажають стати з вами друзями
-		users.GET("/requires", h.GetInvites)
+		//Отримати список усіх користувачів, пов'язаних з вами
+		users.GET("/all", h.GetUserLists)
 		//Запит на дружбу
 		users.POST("/invite", h.InvitedToFriends)
-		//Відмінити запит на дружбу
+		//Скасувати запит на дружбу
 		users.DELETE("/cancel", h.CancelInvite)
 		//Прийняти запит на дружбу
 		users.PUT("/accept", h.AcceptInvitation)
@@ -89,13 +82,14 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	chat := api.Group("/chats", h.userIdentify)
 	{
 		//Створити ПУБЛІЧНИЙ чат
-		chat.POST("", h.CreatePublicChat)
+		chat.POST("/create", h.CreatePublicChat)
 		//Створити ОСОБИСТИЙ чат
 		chat.GET("/:userId/private", h.PrivateChat)
-		//Отримати дані чату
+		//Отримати дані чату за його ID
 		chat.GET("/:id", h.GetChat)
-		//Отримати ID чату за ім'ям
-		chat.GET("/name/:name", h.GetChatByName)
+		//Отримати дані чату та користувача (тільки у
+		// приватному чаті) за ID чату
+		chat.GET("/:id/link", h.GetById)
 		//Отримати список користувачів чату
 		chat.GET("/:id/users", h.GetUsers)
 		//Додати користувачів до чату
@@ -109,7 +103,7 @@ func (h *Handler) InitRoutes() *echo.Echo {
 
 	}
 
-	message := chat.Group("/:chatId/chat")
+	message := chat.Group("/:chatId/messages")
 	{
 		//Створити повідомлення
 		message.POST("", h.CreateMessage)

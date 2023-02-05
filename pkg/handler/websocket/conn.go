@@ -1,4 +1,4 @@
-package handler
+package websocket
 
 import (
 	"github.com/gorilla/websocket"
@@ -30,6 +30,8 @@ type connection struct {
 	ws   *websocket.Conn
 	send chan []byte
 }
+
+var Hub = NewHub(H)
 
 func ServeWs(w http.ResponseWriter, r *http.Request, roomId string) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {

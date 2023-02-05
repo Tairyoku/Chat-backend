@@ -27,20 +27,30 @@ type tokenClaims struct {
 func NewAuthService(repository repository.Authorization) *AuthService {
 	return &AuthService{repository: repository}
 }
+//
+//// CheckUsername викликає перевірку імені користувача
+//func (a *AuthService) CheckUsername(username string) error {
+//	return a.repository.CheckUsername(username)
+//}
 
+// CreateUser кодує пароль викликає створення нового користувача
 func (a *AuthService) CreateUser(user models.User) (int, error) {
 	user.Password = CreatePasswordHash(user.Password)
 	return a.repository.CreateUser(user)
 }
 
+// GetByName викликає повернення даних користувача за ім'ям
+func (a *AuthService) GetByName(username string) (models.User, error) {
+	return a.repository.GetByName(username)
+}
+
+// GetUserById викликає отримання даних користувача за його ID
 func (a *AuthService) GetUserById(userId int) (models.User, error) {
 	return a.repository.GetUserById(userId)
 }
 
-func (a *AuthService) CheckUsername(username string) error {
-	return a.repository.CheckUsername(username)
-}
-
+// GenerateToken отримує за ім'ям та паролем користувача його ID,
+// далі цей ID зашифровується у токен та повертається токен
 func (a *AuthService) GenerateToken(username, password string) (string, error) {
 	user, err := a.repository.GetUser(username, CreatePasswordHash(password))
 	if err != nil {
@@ -57,6 +67,8 @@ func (a *AuthService) GenerateToken(username, password string) (string, error) {
 	return token.SignedString([]byte(os.Getenv("signInKey")))
 }
 
+// ParseToken отримує зашифрований токен, розшифровує його та
+// повертає ID користувача
 func (a *AuthService) ParseToken(accessToken string) (int, error) {
 	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -75,27 +87,20 @@ func (a *AuthService) ParseToken(accessToken string) (int, error) {
 	return claims.UserId, nil
 }
 
+// UpdateData оновлює ім'я або зображення
+func (a *AuthService) UpdateData(user models.User) error {
+	err := a.repository.UpdateUser(user)
+	return err
+}
+
+// UpdatePassword кодує пароль та оновлює його
 func (a *AuthService) UpdatePassword(user models.User) error {
 	user.Password = CreatePasswordHash(user.Password)
 	err := a.repository.UpdateUser(user)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func (a *AuthService) UpdateData(user models.User) error {
-	err := a.repository.UpdateUser(user)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *AuthService) GetByName(name string) (models.User, error) {
-	return a.repository.GetByName(name)
-}
-
+// CreatePasswordHash шифрує пароль
 func CreatePasswordHash(password string) string {
 	hash := sha1.New()
 	hash.Write([]byte(password))

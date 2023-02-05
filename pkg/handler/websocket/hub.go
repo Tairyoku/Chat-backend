@@ -1,6 +1,8 @@
-package handler
+package websocket
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type subscription struct {
 	conn *connection
@@ -43,7 +45,6 @@ func (h *hub) Run() {
 			h.rooms[s.room][s.conn] = true
 		case s := <-h.unregister:
 			connections := h.rooms[s.room]
-			fmt.Println("disconnected")
 			if connections != nil {
 				if _, ok := connections[s.conn]; ok {
 					delete(connections, s.conn)

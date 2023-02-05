@@ -9,6 +9,8 @@ import (
 )
 
 func (h *Handler) CreateMessage(c echo.Context) error {
+
+	// Отримуємо дані з сайту (текст повідомлення)
 	var msg models.Message
 	if err := c.Bind(&msg); err != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
@@ -18,23 +20,32 @@ func (h *Handler) CreateMessage(c echo.Context) error {
 		NewErrorResponse(c, http.StatusBadRequest, "body is empty")
 		return nil
 	}
+
+	// Отримуємо ID чату
 	chatId, errParam := GetParam(c, ChatId)
 	if errParam != nil {
 		return errParam
 	}
+
+	// Отримуємо ID активного користувача
 	userId, errId := GetUserId(c)
 	if errId != nil {
 		return errId
 	}
+
+	// Заповнюємо форму повідомлення
 	msg.ChatId = chatId
 	msg.Author = userId
 	msg.SentAt = time.Now()
+
+	// Створюємо нове повідомлення
 	id, err := h.services.Message.Create(msg)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
 		return nil
 	}
 
+	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"id": id,
 	})
