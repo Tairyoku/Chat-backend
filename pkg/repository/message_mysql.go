@@ -2,6 +2,7 @@ package repository
 
 import (
 	"cmd/pkg/repository/models"
+	"fmt"
 	"github.com/jinzhu/gorm"
 )
 
@@ -30,6 +31,14 @@ func (m *MessageRepository) Get(msgId int) (models.Message, error) {
 func (m *MessageRepository) GetAll(chatId int) ([]models.Message, error) {
 	var msg []models.Message
 	err := m.db.Table(MessagesTable).Where("chat_id = ?", chatId).Find(&msg).Error
+	return msg, err
+}
+
+// GetLimit отримує ID чату ліміт кількості повідомлень ТА повертає їх
+func (m *MessageRepository) GetLimit(chatId, limit int) ([]models.Message, error) {
+	var msg []models.Message
+	query := fmt.Sprintf("SELECT * FROM %s WHERE chat_id = ? ORDER BY sent_at DESC LIMIT ?", MessagesTable)
+	err := m.db.Raw(query, chatId, limit).Scan(&msg).Error
 	return msg, err
 }
 

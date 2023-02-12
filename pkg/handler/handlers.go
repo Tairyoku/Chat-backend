@@ -19,8 +19,6 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	router := echo.New()
 	router.Use(middleware.CORS())
 
-	//Посилання на зображення
-	router.Static("/image/", "./uploads")
 	//SWAGGER
 	//router.GET("/swagger/server/*", echoSwagger.WrapHandler)
 
@@ -33,6 +31,9 @@ func (h *Handler) InitRoutes() *echo.Echo {
 
 	api := router.Group("/api")
 
+	//Посилання на зображення
+	api.Static("/image/", "./uploads")
+
 	auth := api.Group("/auth")
 	{
 		//Реєстрація
@@ -42,11 +43,11 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		//Отримати ID активного користувача
 		auth.GET("/get-me", h.GetMe, h.userIdentify)
 		//Змінити пароль
-		auth.PUT("change/password", h.ChangePassword, h.userIdentify)
+		auth.PUT("/change/password", h.ChangePassword, h.userIdentify)
 		//Змінити нікнейм
-		auth.PUT("change/username", h.ChangeUsername, h.userIdentify)
+		auth.PUT("/change/username", h.ChangeUsername, h.userIdentify)
 		//Змінити аватар
-		auth.PUT("change/icon", h.ChangeIcon, h.userIdentify)
+		auth.PUT("/change/icon", h.ChangeIcon, h.userIdentify)
 	}
 
 	users := api.Group("/users/:id", h.userIdentify)
@@ -93,9 +94,11 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		//Отримати список користувачів чату
 		chat.GET("/:id/users", h.GetUsers)
 		//Додати користувачів до чату
-		chat.PUT("/:id/add", h.AddUserToChat)
+		chat.POST("/:id/add", h.AddUserToChat)
 		//Видалити користувачів із чату
 		chat.PUT("/:id/delete", h.DeleteUserFromChat)
+		//Оновити зображення чату
+		chat.PUT("/:id/icon", h.ChangeChatIcon)
 		//Видалити чат
 		chat.DELETE("/:id", h.DeleteChat)
 		//Пошук чатів за назвою
@@ -109,6 +112,8 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		message.POST("", h.CreateMessage)
 		//Отримати повідомлення
 		message.GET("", h.GetAllMessages)
+		//Отримати певну кількість повідомлень
+		message.GET("/limit/:id", h.GetLimitMessages)
 		//
 		message.GET("/:id", h.GetMessage)
 	}

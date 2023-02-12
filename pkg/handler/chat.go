@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"os"
+	"strings"
 )
 
 func (h *Handler) CreatePublicChat(c echo.Context) error {
@@ -118,15 +120,19 @@ func (h *Handler) GetById(c echo.Context) error {
 			NewErrorResponse(c, http.StatusInternalServerError, "user name error")
 			return nil
 		}
-
+		fmt.Println(len(users))
 		// Фільтрація користувачів
-		for _, u := range users {
-			if u.Id != creatorId {
-				user = u
+		if len(users) == 1 {
+			user = users[0]
+		} else {
+			for _, u := range users {
+				if u.Id != creatorId {
+					user = u
+				}
 			}
 		}
 	}
-
+	fmt.Println(user)
 	// Відгук чату
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"user": user,
@@ -187,6 +193,9 @@ func (h *Handler) GetUserPublicChats(c echo.Context) error {
 
 func (h *Handler) GetUserPrivateChats(c echo.Context) error {
 
+	// Отримання власного ID
+	creatorId := c.Get(userCtx).(int)
+
 	// Отримуємо ID користувача
 	userId, errParam := GetParam(c, ParamId)
 	if errParam != nil {
@@ -211,7 +220,12 @@ func (h *Handler) GetUserPrivateChats(c echo.Context) error {
 			return nil
 		}
 		if len(users) == 2 {
-			result = append(result, chat)
+			for _, u := range users {
+				if u.Id != creatorId {
+					chat.Name = u.Username
+					result = append(result, chat)
+				}
+			}
 		}
 	}
 
@@ -235,12 +249,13 @@ func (h *Handler) AddUserToChat(c echo.Context) error {
 
 	// Отримуємо від сайту ID користувача
 	var list models.ChatUsers
-	errReq := GetRequest(c, list)
-	if errReq != nil {
-		return errReq
+	if errReq := c.Bind(&list); errReq != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
+		return nil
 	}
 	list.ChatId = chatId
 
+	fmt.Println(list)
 	// Додаємо користувача до чату
 	id, err := h.services.Chat.AddUser(list)
 	if err != nil {
@@ -262,27 +277,107 @@ func (h *Handler) DeleteUserFromChat(c echo.Context) error {
 
 	// Отримуємо ID користувача від сайту
 	var list models.ChatUsers
-	errReq := GetRequest(c, list)
-	if errReq != nil {
-		return errReq
+	if errReq := c.Bind(&list); errReq != nil {
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
+		return nil
 	}
+	fmt.Println(list.UserId)
 
 	// Отримуємо ID чату
 	chatId, errParamC := GetParam(c, ParamId)
 	if errParamC != nil {
 		return errParamC
 	}
-
+	fmt.Println(chatId)
 	// Видаляємо користувача з чату
-	err := h.services.Chat.DeleteUser(chatId, list.UserId)
+	err := h.services.Chat.DeleteUser(list.UserId, chatId)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		return err
+	}
+	fmt.Println("finish")
+
+	// Отримуємо усіх користувачів чату
+	users, errUser := h.services.Chat.GetUsers(chatId)
+	if errUser != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "get chat users server error")
 		return nil
 	}
 
+	// Якщо в чаті не залишилося користувачів - видаляємо чат
+	if len(users) == 0 {
+
+		// Видаляємо чат
+		err := h.services.Chat.Delete(chatId)
+		if err != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "chat delete server error")
+			return nil
+		}
+
+		// Видаляємо усі повідомлення чату
+		errMsg := h.services.Message.DeleteAll(chatId)
+		if errMsg != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "messages delete server error")
+			return nil
+		}
+	}
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"message": fmt.Sprintf("user with id %d deleted from chat with id %d", chatId, list.UserId),
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}
+
+func (h *Handler) ChangeChatIcon(c echo.Context) error {
+	// Отримуємо ID чату
+	chatId, errParamC := GetParam(c, ParamId)
+	if errParamC != nil {
+		return errParamC
+	}
+
+	fileName, err := UploadImage(c)
+	if err != nil {
+		return err
+	}
+	fmt.Println("work")
+	//Отримуємо дані чату
+	chat, errCh := h.services.Chat.Get(chatId)
+	if errCh != nil {
+		fmt.Println(7)
+
+		NewErrorResponse(c, http.StatusBadRequest, "incorrect chat data")
+		return nil
+	}
+
+	//Замінюємо дані у БД
+	var oldIcon = chat.Icon
+	chat.Icon = strings.TrimPrefix(fileName, "uploads\\")
+	errPut := h.services.Chat.Update(chat)
+	if errPut != nil {
+		fmt.Println(8)
+
+		NewErrorResponse(c, http.StatusInternalServerError, "update icon error")
+		return nil
+	}
+
+	//Видалення застарілих файлів
+	if len(oldIcon) != 0 {
+		if err := os.Remove(fmt.Sprintf("uploads/%s", oldIcon)); err != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "delete icon error")
+			return nil
+		}
+		if err := os.Remove(fmt.Sprintf("uploads/resize-%s", oldIcon)); err != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "delete icon error")
+			return nil
+		}
+	}
+
+	//Відгук сервера
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "icon changed",
 	})
 	if errRes != nil {
 		return errRes
@@ -321,7 +416,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 		return nil
 	}
 
-	// Видалити усі повідомлення чату
+	// Видаляємо усі повідомлення чату
 	errMsg := h.services.Message.DeleteAll(chatId)
 	if errMsg != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, "messages delete server error")

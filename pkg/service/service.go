@@ -29,6 +29,8 @@ type Chat interface {
 	Create(chat models.Chat) (int, error)
 	// Get викликає отримання даних чату
 	Get(chatId int) (models.Chat, error)
+	// Update викликає оновлення чату
+	Update(chat models.Chat) error
 	// Delete викликає видалення чату
 	Delete(chatId int) error
 	// AddUser викликає додання користувача до чату
@@ -87,6 +89,8 @@ type Message interface {
 	Get(msgId int) (models.Message, error)
 	// GetAll викликає повернення усіх повідомлень чату за його ID
 	GetAll(chatId int) ([]models.Message, error)
+	// GetLimit викликає повернення певної кількості повідомлень чату за його ID
+	GetLimit(chatId, limit int) ([]models.Message, error)
 	// DeleteAll викликає видалення усіх повідомлень чата за його ID
 	DeleteAll(chatId int) error
 }

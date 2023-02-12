@@ -25,6 +25,8 @@ type Chat interface {
 	Get(chatId int) (models.Chat, error)
 	// Delete отримує ID чату ТА видаляє чат
 	Delete(chatId int) error
+	// Update отримує ID чату ТА оновлює дані чату
+	Update(chat models.Chat) error
 	// AddUser отримує ID чату ТА ID користувача, та додає користувача до чату
 	AddUser(users models.ChatUsers) (int, error)
 	// CheckPrivates отримує ID двох можливих користувачів одного приватного
@@ -83,6 +85,8 @@ type Message interface {
 	Get(msgId int) (models.Message, error)
 	// GetAll отримує ID чату ТА повертає його повідомлення
 	GetAll(chatId int) ([]models.Message, error)
+	// GetLimit отримує ID чату ліміт кількості повідомлень ТА повертає їх
+	GetLimit(chatId, limit int) ([]models.Message, error)
 	// DeleteAll отримує ID чату ТА видаляє його повідомлення
 	DeleteAll(chatId int) error
 }

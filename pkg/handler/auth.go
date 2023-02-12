@@ -4,15 +4,6 @@ import (
 	"cmd/pkg/repository/models"
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/muesli/smartcrop"
-	"github.com/muesli/smartcrop/nfnt"
-	"github.com/nfnt/resize"
-	"image"
-	"image/gif"
-	"image/jpeg"
-	"image/png"
-	"io"
-	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -245,98 +236,120 @@ func (h *Handler) ChangeUsername(c echo.Context) error {
 }
 
 func (h *Handler) ChangeIcon(c echo.Context) error {
-
 	//Отримуємо власний ID з контексту
 	userId := c.Get(userCtx).(int)
-
-	//Обмежуємо розмір завантажуваних файлів
-	c.Request().ParseMultipartForm(10 << 20)
-
-	//Отримуємо файл зображення
-	file, err := c.FormFile("image")
+	//
+	////Обмежуємо розмір завантажуваних файлів
+	//c.Request().ParseMultipartForm(10 << 20)
+	//
+	////Отримуємо файл зображення
+	//file, err := c.FormFile("image")
+	//if err != nil {
+	//	fmt.Println(1)
+	//	NewErrorResponse(c, http.StatusBadRequest, "incorrect file error")
+	//	return err
+	//}
+	//
+	//resizeFile, resizeHand, err := c.Request().FormFile("image")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return err
+	//}
+	//defer resizeFile.Close()
+	//
+	////Відкриваємо дані файлу
+	//handler, err := file.Open()
+	//if err != nil {
+	//	fmt.Println(2)
+	//	NewErrorResponse(c, http.StatusConflict, "open file error")
+	//	return err
+	//}
+	//
+	//defer handler.Close()
+	//
+	////Створюємо порожні файли за необхідних розташуванням
+	//tempFile, err := os.CreateTemp("uploads", "upload-*.jpeg")
+	//if err != nil {
+	//	NewErrorResponse(c, http.StatusInternalServerError, "create file error")
+	//	fmt.Println(3)
+	//	return err
+	//}
+	//resFile, err := os.Create(fmt.Sprintf("uploads\\resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads\\")))
+	//if err != nil {
+	//	fmt.Println(4)
+	//	NewErrorResponse(c, http.StatusInternalServerError, "create file error")
+	//	return err
+	//}
+	//defer tempFile.Close()
+	//defer resFile.Close()
+	//
+	////Розкодування зображення за типом
+	//var img image.Image
+	//imgFmt := strings.Split(resizeHand.Filename, ".")
+	//
+	//switch imgFmt[len(imgFmt)-1] {
+	//case "jpeg":
+	//	img, err = jpeg.Decode(resizeFile)
+	//	break
+	//case "jpg":
+	//	img, err = jpeg.Decode(resizeFile)
+	//	break
+	//case "png":
+	//	img, err = png.Decode(resizeFile)
+	//	break
+	//case "gif":
+	//	img, err = gif.Decode(resizeFile)
+	//	break
+	//default:
+	//	fmt.Println(5)
+	//	NewErrorResponse(c, http.StatusBadRequest, "incorrect file type error")
+	//	return nil
+	//}
+	//
+	////Приведення зображень до необхідних форми й розмірів
+	//var crop = []int{10, 10}
+	//if crop != nil && len(crop) == 2 {
+	//	analyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
+	//	topCrop, _ := analyzer.FindBestCrop(img, crop[0], crop[1])
+	//	type SubImager interface {
+	//		SubImage(r image.Rectangle) image.Image
+	//	}
+	//	img = img.(SubImager).SubImage(topCrop)
+	//}
+	//imgWidth := uint(math.Min(float64(100), float64(img.Bounds().Max.X)))
+	//resizedImg := resize.Resize(imgWidth, 0, img, resize.Lanczos3)
+	//
+	////Збереження зображень у новосотворених файлах
+	//fileBytes, err := io.ReadAll(handler)
+	//if err != nil {
+	//	fmt.Println(6)
+	//	return err
+	//}
+	//tempFile.Write(fileBytes)
+	//
+	//err = jpeg.Encode(resFile, resizedImg, nil)
+	//Отримуємо ім'я файлу зображення
+	fileName, err := UploadImage(c)
 	if err != nil {
-		NewErrorResponse(c, http.StatusBadRequest, "incorrect file error")
 		return err
 	}
-
-	//Відкриваємо дані файлу
-	handler, err := file.Open()
-	if err != nil {
-		NewErrorResponse(c, http.StatusConflict, "open file error")
-		return err
-	}
-	defer handler.Close()
-
-	//Створюємо порожні файли за необхідних розташуванням
-	tempFile, err := os.CreateTemp("uploads", "upload-*.jpeg")
-	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, "create file error")
-		return err
-	}
-	resFile, err := os.Create(fmt.Sprintf("uploads\\resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads\\")))
-	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, "create file error")
-		return err
-	}
-	defer tempFile.Close()
-	defer resFile.Close()
-
-	//Розкодування зображення за типом
-	var img image.Image
-	imgFmt := strings.Split(file.Filename, ".")
-
-	switch imgFmt[len(imgFmt)-1] {
-	case "jpeg":
-		img, err = jpeg.Decode(handler)
-		break
-	case "jpg":
-		img, err = jpeg.Decode(handler)
-		break
-	case "png":
-		img, err = png.Decode(handler)
-		break
-	case "gif":
-		img, err = gif.Decode(handler)
-		break
-	default:
-		NewErrorResponse(c, http.StatusBadRequest, "incorrect file type error")
-		return nil
-	}
-
-	//Приведення зображень до необхідних форми й розмірів
-	var crop = []int{10, 10}
-	if crop != nil && len(crop) == 2 {
-		analyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
-		topCrop, _ := analyzer.FindBestCrop(img, crop[0], crop[1])
-		type SubImager interface {
-			SubImage(r image.Rectangle) image.Image
-		}
-		img = img.(SubImager).SubImage(topCrop)
-	}
-	imgWidth := uint(math.Min(float64(100), float64(img.Bounds().Max.X)))
-	resizedImg := resize.Resize(imgWidth, 0, img, resize.Lanczos3)
-
-	//Збереження зображень у новосотворених файлах
-	fileBytes, err := io.ReadAll(handler)
-	if err != nil {
-		return err
-	}
-	tempFile.Write(fileBytes)
-
-	err = jpeg.Encode(resFile, resizedImg, nil)
 
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
 	if errU != nil {
+		fmt.Println(7)
+
 		NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
 		return nil
 	}
 
 	//Замінюємо дані у БД
 	var oldIcon = user.Icon
-	user.Icon = strings.TrimPrefix(tempFile.Name(), "uploads\\")
+	user.Icon = strings.TrimPrefix(fileName, "uploads\\")
 	errPut := h.services.Authorization.UpdateData(user)
 	if errPut != nil {
+		fmt.Println(8)
+
 		NewErrorResponse(c, http.StatusInternalServerError, "update icon error")
 		return nil
 	}

@@ -27,6 +27,12 @@ func (c *ChatRepository) Get(chatId int) (models.Chat, error) {
 	return chat, err
 }
 
+// Update отримує дані чату ТА оновлює їх
+func (c *ChatRepository) Update(chat models.Chat) error {
+	err := c.db.Table(ChatsTable).Select("name", "icon").Where("id = ?", chat.Id).Updates(&chat).Error
+	return err
+}
+
 // Delete отримує ID чату ТА видаляє чат
 func (c *ChatRepository) Delete(chatId int) error {
 	err := c.db.Table(ChatsTable).Delete(&models.Chat{}, chatId).Error
@@ -129,7 +135,8 @@ func (c *ChatRepository) GetPublicChats(userId int) ([]models.Chat, error) {
 
 // DeleteUser отримує ID чату ТА ID користувача, та видаляє користувача із чату
 func (c *ChatRepository) DeleteUser(userId, chatId int) error {
-	err := c.db.Table(ChatUsersList).Where("chat_id = ?", chatId).Delete(&models.ChatUsers{}, userId).Error
+	query := fmt.Sprintf("DELETE FROM %s WHERE user_id = ? and chat_id = ?", ChatUsersList)
+	err := c.db.Raw(query, userId, chatId).Scan(&models.ChatUsers{}).Error
 	return err
 }
 
@@ -142,11 +149,3 @@ func (c *ChatRepository) SearchChat(name string) ([]models.Chat, error) {
 	err := c.db.Table(ChatsTable).Where("types = ? AND name LIKE ?", ChatPublic, fmt.Sprintf("%%%s%%", name)).Find(&chats).Error
 	return chats, err
 }
-
-// GetUserByPrivateChatId більше не потрібна, оскільки імена більше не унікальні
-//func (c *ChatRepository) GetUserByPrivateChatId(chatId int) (models.User, error) {
-//	var user models.User
-//	query := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chl ON u.username = chl.name WHERE chl.id = ? AND chl.types = ?", UsersTable, ChatsTable)
-//	err := c.db.Raw(query, chatId, ChatPrivate).Scan(&user).Error
-//	return user, err
-//}

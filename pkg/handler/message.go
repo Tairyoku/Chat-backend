@@ -95,3 +95,28 @@ func (h *Handler) GetAllMessages(c echo.Context) error {
 	}
 	return nil
 }
+
+func (h *Handler) GetLimitMessages(c echo.Context) error {
+	chatId, errParam := GetParam(c, ChatId)
+	if errParam != nil {
+		return errParam
+	}
+
+	limit, errParamId := GetParam(c, ParamId)
+	if errParamId != nil {
+		return errParamId
+	}
+
+	msg, err := h.services.Message.GetLimit(chatId, limit)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, "server error")
+	}
+
+	errRes := c.JSON(http.StatusOK, map[string]interface{}{
+		"list": msg,
+	})
+	if errRes != nil {
+		return errRes
+	}
+	return nil
+}

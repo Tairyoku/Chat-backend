@@ -23,6 +23,11 @@ func (c *ChatService) Get(chatId int) (models.Chat, error) {
 	return c.repository.Get(chatId)
 }
 
+// Update викликає оновлення даних чату
+func (c *ChatService) Update(chat models.Chat) error {
+	return c.repository.Update(chat)
+}
+
 // Delete викликає видалення чату
 func (c *ChatService) Delete(chatId int) error {
 	return c.repository.Delete(chatId)

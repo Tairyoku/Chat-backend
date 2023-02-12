@@ -28,6 +28,11 @@ func (m *MessageService) GetAll(chatId int) ([]models.Message, error) {
 	return m.repository.GetAll(chatId)
 }
 
+// GetLimit викликає повернення певної кількості повідомлень чату за його ID
+func (m *MessageService) GetLimit(chatId, limit int) ([]models.Message, error) {
+	return m.repository.GetLimit(chatId, limit)
+}
+
 // DeleteAll викликає видалення усіх повідомлень чата за його ID
 func (m *MessageService) DeleteAll(chatId int) error {
 	return m.repository.DeleteAll(chatId)

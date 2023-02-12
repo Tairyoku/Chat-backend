@@ -4,6 +4,7 @@ type Chat struct {
 	Id    int    `json:"id"`
 	Name  string `json:"name" form:"name"  binding:"required"`
 	Types string `json:"types"`
+	Icon  string `json:"icon" form:"icon"  binding:"required"`
 }
 
 type ChatUsers struct {
