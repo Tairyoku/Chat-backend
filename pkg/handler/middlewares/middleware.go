@@ -1,6 +1,8 @@
-package handler
+package middlewares
 
 import (
+	"cmd/pkg/handler/responses"
+	"cmd/pkg/service"
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -19,75 +21,60 @@ import (
 	"strings"
 )
 
+type MiddlewareHandler struct {
+	services *service.Service
+}
+
+func NewMiddlewareHandler(services *service.Service) *MiddlewareHandler {
+	return &MiddlewareHandler{services: services}
+}
+
 const (
 	authorizationHeader = "Authorization"
-	userCtx             = "userId"
+	UserCtx             = "userId"
 	ParamId             = "id"
 	ChatId              = "chatId"
 	Username            = "username"
 	ChatName            = "name"
 )
 
-func (h *Handler) userIdentify(next echo.HandlerFunc) echo.HandlerFunc {
+func (h *MiddlewareHandler) UserIdentify(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		header := c.Request().Header.Get(authorizationHeader)
 		if header == "" {
-			NewErrorResponse(c, http.StatusUnauthorized, "empty auth header")
+			responses.NewErrorResponse(c, http.StatusUnauthorized, "empty auth header")
 			return nil
 		}
-
-		//headerParts := strings.Split(header, " ")
-		//if len(headerParts) != 2 {
-		//	NewErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
-		//	return nil
-		//}
 
 		userId, err := h.services.Authorization.ParseToken(header)
-		//userId, err := h.services.Authorization.ParseToken(headerParts[1])
-
 		if err != nil {
-			NewErrorResponse(c, http.StatusUnauthorized, err.Error())
+			responses.NewErrorResponse(c, http.StatusUnauthorized, "create token error")
 			return nil
 		}
-		c.Set(userCtx, userId)
+		c.Set(UserCtx, userId)
 		return next(c)
 	}
 }
 
 func GetUserId(c echo.Context) (int, error) {
-	id := c.Get(userCtx)
+	id := c.Get(UserCtx)
 	if id == 0 {
-		NewErrorResponse(c, http.StatusNotFound, "user id not found")
+		responses.NewErrorResponse(c, http.StatusNotFound, "user id not found")
 		return 0, errors.New("user id not found")
 	}
 	idInt, ok := id.(int)
 	if !ok {
-		NewErrorResponse(c, http.StatusBadRequest, "user id is of valid type")
+		responses.NewErrorResponse(c, http.StatusBadRequest, "user id is of valid type")
 		return 0, errors.New("user id is of valid type")
 	}
 	return idInt, nil
 }
 
 func GetParam(c echo.Context, name string) (int, error) {
-	param, errReq := strconv.Atoi(c.Param(name))
-	if errReq != nil {
-		NewErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("%s is not integer", name))
-		return 0, errReq
-	}
-	return param, nil
-}
-
-func GetRequest(c echo.Context, i interface{}) error {
-	if err := c.Bind(&i); err != nil {
-		NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
-		return err
-	}
-	return nil
+	return strconv.Atoi(c.Param(name))
 }
 
 func UploadImage(c echo.Context) (string, error) {
-	fmt.Println("working...")
-	defer fmt.Println("finish")
 
 	//Обмежуємо розмір завантажуваних файлів
 	c.Request().ParseMultipartForm(10 << 20)
@@ -95,14 +82,12 @@ func UploadImage(c echo.Context) (string, error) {
 	//Отримуємо файл зображення
 	file, err := c.FormFile("image")
 	if err != nil {
-		fmt.Println(1)
-		NewErrorResponse(c, http.StatusBadRequest, "incorrect file error")
+		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect file error")
 		return "", err
 	}
 
 	resizeFile, resizeHand, err := c.Request().FormFile("image")
 	if err != nil {
-		fmt.Println(err)
 		return "", err
 	}
 	defer resizeFile.Close()
@@ -110,8 +95,7 @@ func UploadImage(c echo.Context) (string, error) {
 	//Відкриваємо дані файлу
 	handler, err := file.Open()
 	if err != nil {
-		fmt.Println(2)
-		NewErrorResponse(c, http.StatusConflict, "open file error")
+		responses.NewErrorResponse(c, http.StatusConflict, "open file error")
 		return "", err
 	}
 
@@ -120,14 +104,12 @@ func UploadImage(c echo.Context) (string, error) {
 	//Створюємо порожні файли за необхідних розташуванням
 	tempFile, err := os.CreateTemp("uploads", "upload-*.jpeg")
 	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, "create file error")
-		fmt.Println(3)
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "create file error")
 		return "", err
 	}
 	resFile, err := os.Create(fmt.Sprintf("uploads\\resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads\\")))
 	if err != nil {
-		fmt.Println(4)
-		NewErrorResponse(c, http.StatusInternalServerError, "create file error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "create file error")
 		return "", err
 	}
 	defer tempFile.Close()
@@ -151,8 +133,7 @@ func UploadImage(c echo.Context) (string, error) {
 		img, err = gif.Decode(resizeFile)
 		break
 	default:
-		fmt.Println(5)
-		NewErrorResponse(c, http.StatusBadRequest, "incorrect file type error")
+		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect file type error")
 		return "", err
 	}
 
@@ -172,7 +153,6 @@ func UploadImage(c echo.Context) (string, error) {
 	//Збереження зображень у новосотворених файлах
 	fileBytes, err := io.ReadAll(handler)
 	if err != nil {
-		fmt.Println(6)
 		return "", err
 	}
 	tempFile.Write(fileBytes)

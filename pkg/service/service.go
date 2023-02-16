@@ -4,7 +4,7 @@ import (
 	"cmd/pkg/repository"
 	"cmd/pkg/repository/models"
 )
-
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
 type Authorization interface {
 	// CreateUser кодує пароль викликає створення нового користувача
 	CreateUser(user models.User) (int, error)
@@ -49,9 +49,10 @@ type Chat interface {
 	// SearchChat викликає отримання масиву чатів, назви яких повністю чи
 	// частково збігаються з аргументом
 	SearchChat(name string) ([]models.Chat, error)
-	//GetByName(name string) (models.Chat, error)
-	//CheckPrivates(firstUser, secondUser int) ([]int, error)
-	//GetUserByPrivateChatId(chatId int) (models.User, error)
+	// DeleteAllMessages викликає видалення усіх повідомлень чата за його ID
+	DeleteAllMessages(chatId int) error
+	// GetUserById викликає отримання даних користувача за його ID
+	GetUserById(userId int) (models.User, error)
 }
 
 type Status interface {
@@ -80,6 +81,8 @@ type Status interface {
 	// SearchUser викликає отримання списку чатів, що мають частково або
 	// повністю збіг з аргументом
 	SearchUser(username string) ([]models.User, error)
+	// GetUserById викликає отримання даних користувача за його ID
+	GetUserById(userId int) (models.User, error)
 }
 
 type Message interface {

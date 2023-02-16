@@ -1,15 +1,24 @@
-package handler
+package users
 
 import (
 	"cmd/pkg/handler/middlewares"
 	"cmd/pkg/handler/responses"
 	"cmd/pkg/repository"
 	"cmd/pkg/repository/models"
+	"cmd/pkg/service"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
-func (h *Handler) GetUserById(c echo.Context) error {
+type UsersHandler struct {
+	services *service.Service
+}
+
+func NewUsersHandler(services *service.Service) *UsersHandler {
+	return &UsersHandler{services: services}
+}
+
+func (h *UsersHandler) GetUserById(c echo.Context) error {
 
 	// Отримуємо ID користувача
 	userId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -18,9 +27,10 @@ func (h *Handler) GetUserById(c echo.Context) error {
 	}
 
 	// Отримуємо дані користувача
-	user, err := h.services.Authorization.GetUserById(userId)
+	user, err := h.services.Status.GetUserById(userId)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get user error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -33,7 +43,7 @@ func (h *Handler) GetUserById(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetUserLists(c echo.Context) error {
+func (h *UsersHandler) GetUserLists(c echo.Context) error {
 
 	// Отримуємо ID користувача
 	userId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -45,35 +55,35 @@ func (h *Handler) GetUserLists(c echo.Context) error {
 	friends, errFr := h.services.Status.GetFriends(userId)
 	if errFr != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "friends list error")
-		return errFr
+		return nil
 	}
 
 	// Отримуємо список заблокованих користувачів
 	bl, errBL := h.services.Status.GetBlackList(userId)
 	if errBL != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "black list error")
-		return errBL
+		return nil
 	}
 
 	// Отримуємо список користувачів, що заблокували користувача
 	onBL, errOnBL := h.services.Status.GetBlackListToUser(userId)
 	if errOnBL != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "on black list error")
-		return errOnBL
+		return nil
 	}
 
 	// Отримуємо список користувачів, яким відправлено запрошення в друзі
 	invites, errInv := h.services.Status.GetSentInvites(userId)
 	if errInv != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "friend invites list error")
-		return errInv
+		return nil
 	}
 
 	// Отримуємо список користувачів, які отримали від користувача запрошення у друзі
 	requires, errReq := h.services.Status.GetInvites(userId)
 	if errReq != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "friend requires list error")
-		return errReq
+		return nil
 	}
 
 	//Відгук сервера
@@ -90,13 +100,10 @@ func (h *Handler) GetUserLists(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) InvitedToFriends(c echo.Context) error {
+func (h *UsersHandler) InvitedToFriends(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	senderId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	senderId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	recipientId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -114,7 +121,8 @@ func (h *Handler) InvitedToFriends(c echo.Context) error {
 	//Створюємо нові відносини
 	id, err := h.services.Status.AddStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "add status error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -127,13 +135,10 @@ func (h *Handler) InvitedToFriends(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) CancelInvite(c echo.Context) error {
+func (h *UsersHandler) CancelInvite(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	senderId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	senderId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	recipientId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -151,7 +156,8 @@ func (h *Handler) CancelInvite(c echo.Context) error {
 	// Видаляємо відносини за моделлю
 	err := h.services.Status.DeleteStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "delete status error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -164,13 +170,10 @@ func (h *Handler) CancelInvite(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) AcceptInvitation(c echo.Context) error {
+func (h *UsersHandler) AcceptInvitation(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	recipientId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	recipientId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	senderId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -188,7 +191,8 @@ func (h *Handler) AcceptInvitation(c echo.Context) error {
 	// Оновлюємо відносини за моделлю
 	err := h.services.Status.UpdateStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "update status error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -201,13 +205,10 @@ func (h *Handler) AcceptInvitation(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) RefuseInvitation(c echo.Context) error {
+func (h *UsersHandler) RefuseInvitation(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	recipientId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	recipientId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	senderId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -225,12 +226,13 @@ func (h *Handler) RefuseInvitation(c echo.Context) error {
 	// Видаляємо відносини за моделлю
 	err := h.services.Status.DeleteStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "delete status error")
+		return nil
 	}
 
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "Invitation refused",
+		"message": "invitation refused",
 	})
 	if errRes != nil {
 		return errRes
@@ -238,13 +240,10 @@ func (h *Handler) RefuseInvitation(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) DeleteFriend(c echo.Context) error {
+func (h *UsersHandler) DeleteFriend(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	senderId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	senderId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	recipientId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -262,7 +261,8 @@ func (h *Handler) DeleteFriend(c echo.Context) error {
 	// Видаляємо відносини за моделлю
 	err := h.services.Status.DeleteStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "delete status error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -275,13 +275,10 @@ func (h *Handler) DeleteFriend(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) AddToBlackList(c echo.Context) error {
+func (h *UsersHandler) AddToBlackList(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	senderId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	senderId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	recipientId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -299,7 +296,8 @@ func (h *Handler) AddToBlackList(c echo.Context) error {
 	//Створюємо нові відносини
 	id, err := h.services.Status.AddStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "add status error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -312,13 +310,10 @@ func (h *Handler) AddToBlackList(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) DeleteFromBlacklist(c echo.Context) error {
+func (h *UsersHandler) DeleteFromBlacklist(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
-	senderId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	senderId := c.Get(middlewares.UserCtx).(int)
 
 	// Отримуємо ID запрошуваного користувача
 	recipientId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -336,7 +331,8 @@ func (h *Handler) DeleteFromBlacklist(c echo.Context) error {
 	// Видаляємо відносини за моделлю
 	err := h.services.Status.DeleteStatus(status)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "delete status error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -349,7 +345,7 @@ func (h *Handler) DeleteFromBlacklist(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) SearchUser(c echo.Context) error {
+func (h *UsersHandler) SearchUser(c echo.Context) error {
 
 	// Отримуємо фрагмент імені користувача
 	username := c.Param(middlewares.Username)
@@ -360,8 +356,8 @@ func (h *Handler) SearchUser(c echo.Context) error {
 	// Отримуємо список користувачів, що мають в імені отриманий фрагмент
 	users, err := h.services.Status.SearchUser(username)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
-		return err
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "search users error")
+		return nil
 	}
 
 	// Відгук сервера

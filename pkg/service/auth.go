@@ -27,11 +27,6 @@ type tokenClaims struct {
 func NewAuthService(repository repository.Authorization) *AuthService {
 	return &AuthService{repository: repository}
 }
-//
-//// CheckUsername викликає перевірку імені користувача
-//func (a *AuthService) CheckUsername(username string) error {
-//	return a.repository.CheckUsername(username)
-//}
 
 // CreateUser кодує пароль викликає створення нового користувача
 func (a *AuthService) CreateUser(user models.User) (int, error) {
@@ -54,6 +49,9 @@ func (a *AuthService) GetUserById(userId int) (models.User, error) {
 func (a *AuthService) GenerateToken(username, password string) (string, error) {
 	user, err := a.repository.GetUser(username, CreatePasswordHash(password))
 	if err != nil {
+		return "", err
+	}
+	if user.Id == 0 {
 		return "", err
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{

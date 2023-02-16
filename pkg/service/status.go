@@ -67,3 +67,8 @@ func (s *StatusService) GetInvites(userId int) ([]models.User, error) {
 func (s *StatusService) SearchUser(username string) ([]models.User, error) {
 	return s.repository.SearchUser(username)
 }
+
+// GetUserById викликає отримання даних користувача за його ID
+func (s *StatusService) GetUserById(userId int) (models.User, error) {
+	return s.repository.GetUserById(userId)
+}

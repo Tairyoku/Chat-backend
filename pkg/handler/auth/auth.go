@@ -1,15 +1,24 @@
-package handler
+package auth
 
 import (
 	"cmd/pkg/handler/middlewares"
 	"cmd/pkg/handler/responses"
 	"cmd/pkg/repository/models"
+	"cmd/pkg/service"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"os"
 	"strings"
 )
+
+type AuthHandler struct {
+	services *service.Service
+}
+
+func NewAuthHandler(services *service.Service) *AuthHandler {
+	return &AuthHandler{services: services}
+}
 
 // SignUp godoc
 // @Summary      Create a new user
@@ -23,7 +32,7 @@ import (
 // @Failure 	 404 	{object} ErrorResponse	 "user id not found"
 // @Failure 	 500 	{object} ErrorResponse	 "something went wrong"
 // @Router       /auth/sign-up [post]
-func (h *Handler) SignUp(c echo.Context) error {
+func (h *AuthHandler) SignUp(c echo.Context) error {
 
 	// Отримуємо дані з сайту (ім'я та пароль)
 	var input models.User
@@ -49,15 +58,16 @@ func (h *Handler) SignUp(c echo.Context) error {
 
 	// Створюємо нового користувача
 	id, errUser := h.services.Authorization.CreateUser(input)
+	// При спробі створення користувача з однаковим ім'ям викличеться помилка
 	if errUser != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "username is already used")
+		responses.NewErrorResponse(c, http.StatusConflict, "username is already used")
 		return nil
 	}
 
 	// Генеруємо токен та шифруємо в ньому ID користувача
 	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "generate token error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "generate token error")
 		return nil
 	}
 
@@ -90,7 +100,7 @@ type SignInInput struct {
 // @Failure 	 404 	{object} ErrorResponse	 "user not found"
 // @Failure 	 500 	{object} ErrorResponse	 "something went wrong"
 // @Router       /auth/sign-in [post]
-func (h *Handler) SignIn(c echo.Context) error {
+func (h *AuthHandler) SignIn(c echo.Context) error {
 
 	// Отримуємо дані з сайту (ім'я та пароль)
 	var input SignInInput
@@ -102,7 +112,7 @@ func (h *Handler) SignIn(c echo.Context) error {
 	//Перевіряємо чи існує користувач за його іменем
 	user, errCheck := h.services.Authorization.GetByName(input.Username)
 	if errCheck != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "check user error")
 		return nil
 	}
 	if user.Username == "" {
@@ -113,7 +123,7 @@ func (h *Handler) SignIn(c echo.Context) error {
 	// Генеруємо токен (якщо ім'я та пароль правильні)
 	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
+		responses.NewErrorResponse(c, http.StatusConflict, "incorrect password")
 		return nil
 	}
 
@@ -127,10 +137,15 @@ func (h *Handler) SignIn(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetMe(c echo.Context) error {
+func (h *AuthHandler) GetMe(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
 	userId := c.Get(middlewares.UserCtx)
+
+	if userId == 0 {
+		responses.NewErrorResponse(c, http.StatusNotFound, "user not found")
+		return nil
+	}
 
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
@@ -147,7 +162,7 @@ type ChangePassword struct {
 	NewPassword string `json:"new_password" form:"new_password"  binding:"required"`
 }
 
-func (h *Handler) ChangePassword(c echo.Context) error {
+func (h *AuthHandler) ChangePassword(c echo.Context) error {
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
 
@@ -157,18 +172,22 @@ func (h *Handler) ChangePassword(c echo.Context) error {
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
+	if len(passwords.NewPassword) < 6 {
+		responses.NewErrorResponse(c, http.StatusBadRequest, "password must be at least 6 symbols")
+		return nil
+	}
 
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
 	if errU != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
+		responses.NewErrorResponse(c, http.StatusNotFound, "incorrect user data")
 		return nil
 	}
 
 	//Перевіряємо вірність введеного паролю
 	_, errCheck := h.services.Authorization.GenerateToken(user.Username, passwords.OldPassword)
 	if errCheck != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "wrong password error")
+		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect password")
 		return nil
 	}
 
@@ -176,7 +195,7 @@ func (h *Handler) ChangePassword(c echo.Context) error {
 	user.Password = passwords.NewPassword
 	err := h.services.Authorization.UpdatePassword(user)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "update password error")
 		return nil
 	}
 
@@ -190,7 +209,7 @@ func (h *Handler) ChangePassword(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) ChangeUsername(c echo.Context) error {
+func (h *AuthHandler) ChangeUsername(c echo.Context) error {
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
 
@@ -204,18 +223,18 @@ func (h *Handler) ChangeUsername(c echo.Context) error {
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
 	if errU != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "incorrect user data")
 		return nil
 	}
 
 	//Перевіряємо чи існує користувач за його іменем
 	check, errCheck := h.services.Authorization.GetByName(username.Username)
 	if errCheck != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "check user error")
 		return nil
 	}
 	if check.Id != 0 {
-		responses.NewErrorResponse(c, http.StatusNotFound, "username is used")
+		responses.NewErrorResponse(c, http.StatusConflict, "username is used")
 		return nil
 	}
 
@@ -223,7 +242,7 @@ func (h *Handler) ChangeUsername(c echo.Context) error {
 	user.Username = username.Username
 	errPut := h.services.Authorization.UpdateData(user)
 	if errPut != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "update username error")
 		return nil
 	}
 
@@ -237,7 +256,7 @@ func (h *Handler) ChangeUsername(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) ChangeIcon(c echo.Context) error {
+func (h *AuthHandler) ChangeIcon(c echo.Context) error {
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
 
@@ -250,8 +269,6 @@ func (h *Handler) ChangeIcon(c echo.Context) error {
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
 	if errU != nil {
-		fmt.Println(7)
-
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
 		return nil
 	}
@@ -261,8 +278,6 @@ func (h *Handler) ChangeIcon(c echo.Context) error {
 	user.Icon = strings.TrimPrefix(fileName, "uploads\\")
 	errPut := h.services.Authorization.UpdateData(user)
 	if errPut != nil {
-		fmt.Println(8)
-
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "update icon error")
 		return nil
 	}

@@ -1,22 +1,30 @@
-package handler
+package messages
 
 import (
 	"cmd/pkg/handler/middlewares"
 	"cmd/pkg/handler/responses"
 	"cmd/pkg/repository/models"
+	"cmd/pkg/service"
 	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"time"
 )
 
-func (h *Handler) CreateMessage(c echo.Context) error {
+type MessageHandler struct {
+	services *service.Service
+}
+
+func NewMessageHandler(services *service.Service) *MessageHandler {
+	return &MessageHandler{services: services}
+}
+
+func (h *MessageHandler) CreateMessage(c echo.Context) error {
 
 	// Отримуємо дані з сайту (текст повідомлення)
 	var msg models.Message
 	if err := c.Bind(&msg); err != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
-		return nil
+		return err
 	}
 	if msg.Text == "" {
 		responses.NewErrorResponse(c, http.StatusBadRequest, "body is empty")
@@ -43,7 +51,7 @@ func (h *Handler) CreateMessage(c echo.Context) error {
 	// Створюємо нове повідомлення
 	id, err := h.services.Message.Create(msg)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "create message error")
 		return nil
 	}
 
@@ -57,7 +65,7 @@ func (h *Handler) CreateMessage(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetMessage(c echo.Context) error {
+func (h *MessageHandler) GetMessage(c echo.Context) error {
 	msgId, errParam := middlewares.GetParam(c, middlewares.ParamId)
 	if errParam != nil {
 		return errParam
@@ -78,7 +86,7 @@ func (h *Handler) GetMessage(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetAllMessages(c echo.Context) error {
+func (h *MessageHandler) GetAllMessages(c echo.Context) error {
 	chatId, errParam := middlewares.GetParam(c, middlewares.ChatId)
 	if errParam != nil {
 		return errParam
@@ -98,7 +106,7 @@ func (h *Handler) GetAllMessages(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetLimitMessages(c echo.Context) error {
+func (h *MessageHandler) GetLimitMessages(c echo.Context) error {
 	chatId, errParam := middlewares.GetParam(c, middlewares.ChatId)
 	if errParam != nil {
 		return errParam
@@ -111,7 +119,8 @@ func (h *Handler) GetLimitMessages(c echo.Context) error {
 
 	msg, err := h.services.Message.GetLimit(chatId, limit)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get limit error")
+		return nil
 	}
 	var result []models.Message
 	var length = len(msg) - 1

@@ -49,6 +49,10 @@ type Chat interface {
 	// SearchChat отримує назву чату (або його частину) ТА повертає масив чатів,
 	// назви яких збігаються з аргументом
 	SearchChat(name string) ([]models.Chat, error)
+	// DeleteAllMessages отримує ID чату ТА видаляє його повідомлення
+	DeleteAllMessages(chatId int) error
+	// GetUserById отримує ID користувача ТА повертає його дані
+	GetUserById(userId int) (models.User, error)
 }
 
 type Status interface {
@@ -76,6 +80,8 @@ type Status interface {
 	// SearchUser отримує ім'я (або його частину) ТА повертає масив користувачів, що
 	// мають збіг з аргументом
 	SearchUser(username string) ([]models.User, error)
+	// GetUserById отримує ID користувача ТА повертає його дані
+	GetUserById(userId int) (models.User, error)
 }
 
 type Message interface {

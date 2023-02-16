@@ -37,7 +37,7 @@ func (m *MessageRepository) GetAll(chatId int) ([]models.Message, error) {
 // GetLimit отримує ID чату ліміт кількості повідомлень ТА повертає їх
 func (m *MessageRepository) GetLimit(chatId, limit int) ([]models.Message, error) {
 	var msg []models.Message
-	query := fmt.Sprintf("SELECT * FROM %s WHERE chat_id = ? ORDER BY sent_at DESC LIMIT ?", MessagesTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE chat_id = ? ORDER BY id DESC LIMIT ?", MessagesTable)
 	err := m.db.Raw(query, chatId, limit).Scan(&msg).Error
 	return msg, err
 }

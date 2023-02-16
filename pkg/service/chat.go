@@ -114,16 +114,12 @@ func (c *ChatService) SearchChat(name string) ([]models.Chat, error) {
 	return c.repository.SearchChat(name)
 }
 
-// GetByName більше немає унікальності назв чатів
-//func (c *ChatService) GetByName(name string) (models.Chat, error) {
-//	return c.repository.GetByName(name)
-//}
+// DeleteAllMessages викликає видалення усіх повідомлень чата за його ID
+func (c *ChatService) DeleteAllMessages(chatId int) error {
+	return c.repository.DeleteAllMessages(chatId)
+}
 
-//func (c *ChatService) GetUserByPrivateChatId(chatId int) (models.User, error) {
-//	return c.repository.GetUserByPrivateChatId(chatId)
-//}
-
-// CheckPrivates ТРЕБА ПРИБРАТИ
-//func (c *ChatService) CheckPrivates(firstUser, secondUser int) ([]int, error) {
-//	return c.repository.CheckPrivates(firstUser, secondUser)
-//}
+// GetUserById викликає отримання даних користувача за його ID
+func (c *ChatService) GetUserById(userId int) (models.User, error) {
+	return c.repository.GetUserById(userId)
+}

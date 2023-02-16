@@ -149,3 +149,18 @@ func (c *ChatRepository) SearchChat(name string) ([]models.Chat, error) {
 	err := c.db.Table(ChatsTable).Where("types = ? AND name LIKE ?", ChatPublic, fmt.Sprintf("%%%s%%", name)).Find(&chats).Error
 	return chats, err
 }
+
+// DeleteAllMessages отримує ID чату ТА видаляє його повідомлення
+func (c *ChatRepository) DeleteAllMessages(chatId int) error {
+	err := c.db.Table(MessagesTable).Where("chat_id = ?", chatId).Delete(&models.Message{}).Error
+	return err
+}
+
+// GetUserById отримує ID користувача ТА повертає його дані
+func (c *ChatRepository) GetUserById(userId int) (models.User, error) {
+	var user models.User
+	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE id = ?", UsersTable)
+	err := c.db.Raw(query, userId).Scan(&user).Error
+	//err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
+	return user, err
+}

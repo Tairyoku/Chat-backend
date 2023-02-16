@@ -127,31 +127,11 @@ func (s *StatusRepository) SearchUser(username string) ([]models.User, error) {
 	return users, err
 }
 
-//func (s *StatusRepository) GetFriends(userId int) ([]int, error) {
-//	var usersId []models.Status
-//	var result []int
-//	tx := s.db.Begin()
-//	//err := tx.Table(StatusesTable).Where("relationship = ? and recipient_id = ?",
-//	//	StatusFriends, userId).Find(&usersId).Error
-//	query := fmt.Sprintf("SELECT sender_id FROM %s WHERE relationship = ? and recipient_id = ?", StatusesTable)
-//	err := tx.Raw(query, StatusFriends, userId).Scan(&usersId).Error
-//	if err != nil {
-//		tx.Rollback()
-//		return nil, err
-//	}
-//	for i := range usersId {
-//		result = append(result, usersId[i].SenderId)
-//	}
-//	//errt := tx.Table(StatusesTable).Where("relationship = ? and sender_id = ?",
-//	//	StatusFriends, userId).Find(&usersId).Error
-//	queryt := fmt.Sprintf("SELECT recipient_id FROM %s WHERE relationship = ? and sender_id = ?", StatusesTable)
-//	errt := tx.Raw(queryt, StatusFriends, userId).Scan(&usersId).Error
-//	if errt != nil {
-//		tx.Rollback()
-//		return nil, errt
-//	}
-//	for i := range usersId {
-//		result = append(result, usersId[i].RecipientId)
-//	}
-//	return result, tx.Commit().Error
-//}
+// GetUserById отримує ID користувача ТА повертає його дані
+func (s *StatusRepository) GetUserById(userId int) (models.User, error) {
+	var user models.User
+	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE id = ?", UsersTable)
+	err := s.db.Raw(query, userId).Scan(&user).Error
+	//err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
+	return user, err
+}

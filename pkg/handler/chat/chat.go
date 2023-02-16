@@ -1,10 +1,11 @@
-package handler
+package chat
 
 import (
 	"cmd/pkg/handler/middlewares"
 	"cmd/pkg/handler/responses"
 	"cmd/pkg/repository"
 	"cmd/pkg/repository/models"
+	"cmd/pkg/service"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -12,7 +13,15 @@ import (
 	"strings"
 )
 
-func (h *Handler) CreatePublicChat(c echo.Context) error {
+type ChatHandler struct {
+	services *service.Service
+}
+
+func NewChatHandler(services *service.Service) *ChatHandler {
+	return &ChatHandler{services: services}
+}
+
+func (h *ChatHandler) CreatePublicChat(c echo.Context) error {
 
 	// Отримуємо дані з сайту (ім'я) та перевіряємо їх
 	var chat models.Chat
@@ -29,16 +38,13 @@ func (h *Handler) CreatePublicChat(c echo.Context) error {
 	chat.Types = repository.ChatPublic
 
 	// Отримуємо ID активного користувача
-	userId, errId := middlewares.GetUserId(c)
-	if errId != nil {
-		return errId
-	}
+	userId := c.Get(middlewares.UserCtx).(int)
 
 	// Створюємо чат
 	chatId, err := h.services.Chat.Create(chat)
 	if err != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "create message error")
-		return err
+		return nil
 	}
 
 	// Додаємо активного користувача до новоствореного чату
@@ -49,12 +55,12 @@ func (h *Handler) CreatePublicChat(c echo.Context) error {
 	_, errAdd := h.services.Chat.AddUser(newUser)
 	if errAdd != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "add user to chat error")
-		return errAdd
+		return nil
 	}
 
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"id": userId,
+		"id": chatId,
 	})
 	if errRes != nil {
 		return errRes
@@ -62,7 +68,7 @@ func (h *Handler) CreatePublicChat(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetChat(c echo.Context) error {
+func (h *ChatHandler) GetChat(c echo.Context) error {
 
 	// Отримуємо ID чату
 	id, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -73,13 +79,9 @@ func (h *Handler) GetChat(c echo.Context) error {
 	// Отримує дані чату за його ID
 	chat, err := h.services.Chat.Get(id)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chat error")
 		return nil
 	}
-	//_, errEnCd := json.Marshal(chat)
-	//if errEnCd != nil {
-	//	return errEnCd
-	//}
 
 	//Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
@@ -91,7 +93,7 @@ func (h *Handler) GetChat(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetById(c echo.Context) error {
+func (h *ChatHandler) GetById(c echo.Context) error {
 
 	// Отримання власного ID
 	creatorId := c.Get(middlewares.UserCtx).(int)
@@ -101,16 +103,16 @@ func (h *Handler) GetById(c echo.Context) error {
 	if errParamC != nil {
 		return errParamC
 	}
-	if chatId == 0 {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "no chat id")
-		return nil
-	}
+	//if chatId == 0 {
+	//	responses.NewErrorResponse(c, http.StatusBadRequest, "no chat id")
+	//	return nil
+	//}
 
 	// Отримання даних чату
 	chat, err := h.services.Chat.Get(chatId)
 	if err != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "no chat error")
-		return err
+		return nil
 	}
 
 	//Отримання даних користувача (для приватного чату)
@@ -119,10 +121,10 @@ func (h *Handler) GetById(c echo.Context) error {
 		// Отримання користувачів приватного чату
 		users, err := h.services.Chat.GetUsers(chatId)
 		if err != nil {
-			responses.NewErrorResponse(c, http.StatusInternalServerError, "user name error")
+			responses.NewErrorResponse(c, http.StatusInternalServerError, "get users error")
 			return nil
 		}
-		fmt.Println(len(users))
+
 		// Фільтрація користувачів
 		if len(users) == 1 {
 			user = users[0]
@@ -134,7 +136,7 @@ func (h *Handler) GetById(c echo.Context) error {
 			}
 		}
 	}
-	fmt.Println(user)
+
 	// Відгук чату
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"user": user,
@@ -146,7 +148,7 @@ func (h *Handler) GetById(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetUsers(c echo.Context) error {
+func (h *ChatHandler) GetUsers(c echo.Context) error {
 
 	// отримуємо ID чату
 	chatId, errParamC := middlewares.GetParam(c, middlewares.ParamId)
@@ -157,7 +159,7 @@ func (h *Handler) GetUsers(c echo.Context) error {
 	// Отримуємо усіх користувачів чату
 	users, err := h.services.Chat.GetUsers(chatId)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get users error")
 		return nil
 	}
 
@@ -169,7 +171,7 @@ func (h *Handler) GetUsers(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetUserPublicChats(c echo.Context) error {
+func (h *ChatHandler) GetUserPublicChats(c echo.Context) error {
 
 	// Отримуємо ID користувача
 	userId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -180,7 +182,8 @@ func (h *Handler) GetUserPublicChats(c echo.Context) error {
 	// Отримує список публічних чатів, в яких присутній користувач
 	chats, err := h.services.Chat.GetPublicChats(userId)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chats error")
+		return nil
 	}
 
 	// Відгук сервера
@@ -193,7 +196,7 @@ func (h *Handler) GetUserPublicChats(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) GetUserPrivateChats(c echo.Context) error {
+func (h *ChatHandler) GetUserPrivateChats(c echo.Context) error {
 
 	// Отримання власного ID
 	creatorId := c.Get(middlewares.UserCtx).(int)
@@ -207,8 +210,8 @@ func (h *Handler) GetUserPrivateChats(c echo.Context) error {
 	// Отримуємо список приватних чатів
 	chats, err := h.services.Chat.GetPrivateChats(userId)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
-		return err
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chats error")
+		return nil
 	}
 
 	// Перевіряємо кількість користувачів у чаті
@@ -218,7 +221,7 @@ func (h *Handler) GetUserPrivateChats(c echo.Context) error {
 	for _, chat := range chats {
 		users, err := h.services.Chat.GetUsers(chat.Id)
 		if err != nil {
-			responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+			responses.NewErrorResponse(c, http.StatusInternalServerError, "get users error")
 			return nil
 		}
 		if len(users) == 2 {
@@ -241,7 +244,7 @@ func (h *Handler) GetUserPrivateChats(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) AddUserToChat(c echo.Context) error {
+func (h *ChatHandler) AddUserToChat(c echo.Context) error {
 
 	// Отримуємо ID чату
 	chatId, errParamC := middlewares.GetParam(c, middlewares.ParamId)
@@ -257,11 +260,10 @@ func (h *Handler) AddUserToChat(c echo.Context) error {
 	}
 	list.ChatId = chatId
 
-	fmt.Println(list)
 	// Додаємо користувача до чату
 	id, err := h.services.Chat.AddUser(list)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "add user to chat error")
 		return nil
 	}
 
@@ -275,7 +277,7 @@ func (h *Handler) AddUserToChat(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) DeleteUserFromChat(c echo.Context) error {
+func (h *ChatHandler) DeleteUserFromChat(c echo.Context) error {
 
 	// Отримуємо ID користувача від сайту
 	var list models.ChatUsers
@@ -283,26 +285,24 @@ func (h *Handler) DeleteUserFromChat(c echo.Context) error {
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
-	fmt.Println(list.UserId)
 
 	// Отримуємо ID чату
 	chatId, errParamC := middlewares.GetParam(c, middlewares.ParamId)
 	if errParamC != nil {
 		return errParamC
 	}
-	fmt.Println(chatId)
+
 	// Видаляємо користувача з чату
 	err := h.services.Chat.DeleteUser(list.UserId, chatId)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
-		return err
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "delete user error")
+		return nil
 	}
-	fmt.Println("finish")
 
 	// Отримуємо усіх користувачів чату
 	users, errUser := h.services.Chat.GetUsers(chatId)
 	if errUser != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chat users server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chat users error")
 		return nil
 	}
 
@@ -312,20 +312,20 @@ func (h *Handler) DeleteUserFromChat(c echo.Context) error {
 		// Видаляємо чат
 		err := h.services.Chat.Delete(chatId)
 		if err != nil {
-			responses.NewErrorResponse(c, http.StatusInternalServerError, "chat delete server error")
+			responses.NewErrorResponse(c, http.StatusInternalServerError, "chat delete error")
 			return nil
 		}
 
 		// Видаляємо усі повідомлення чату
-		errMsg := h.services.Message.DeleteAll(chatId)
+		errMsg := h.services.Chat.DeleteAllMessages(chatId)
 		if errMsg != nil {
-			responses.NewErrorResponse(c, http.StatusInternalServerError, "messages delete server error")
+			responses.NewErrorResponse(c, http.StatusInternalServerError, "messages delete error")
 			return nil
 		}
 	}
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"message": fmt.Sprintf("user with id %d deleted from chat with id %d", chatId, list.UserId),
+		"message": fmt.Sprintf("user with id %d deleted from chat with id %d", list.UserId, chatId),
 	})
 	if errRes != nil {
 		return errRes
@@ -333,7 +333,7 @@ func (h *Handler) DeleteUserFromChat(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) ChangeChatIcon(c echo.Context) error {
+func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	// Отримуємо ID чату
 	chatId, errParamC := middlewares.GetParam(c, middlewares.ParamId)
 	if errParamC != nil {
@@ -387,7 +387,7 @@ func (h *Handler) ChangeChatIcon(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) DeleteChat(c echo.Context) error {
+func (h *ChatHandler) DeleteChat(c echo.Context) error {
 
 	// Отримуємо ID чату
 	chatId, errParam := middlewares.GetParam(c, middlewares.ParamId)
@@ -398,7 +398,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 	// Отримуємо усіх користувачів чату
 	users, errUser := h.services.Chat.GetUsers(chatId)
 	if errUser != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chat users server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chat users error")
 		return nil
 	}
 
@@ -406,7 +406,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 	for _, user := range users {
 		errDelUser := h.services.Chat.DeleteUser(user.Id, chatId)
 		if errDelUser != nil {
-			responses.NewErrorResponse(c, http.StatusInternalServerError, "delete user from chat server error")
+			responses.NewErrorResponse(c, http.StatusInternalServerError, "delete user from chat error")
 			return nil
 		}
 	}
@@ -414,14 +414,14 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 	// Видаляємо чат
 	err := h.services.Chat.Delete(chatId)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "chat delete server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "chat delete error")
 		return nil
 	}
 
 	// Видаляємо усі повідомлення чату
-	errMsg := h.services.Message.DeleteAll(chatId)
+	errMsg := h.services.Chat.DeleteAllMessages(chatId)
 	if errMsg != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "messages delete server error")
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "messages delete error")
 		return nil
 	}
 
@@ -435,7 +435,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) PrivateChat(c echo.Context) error {
+func (h *ChatHandler) PrivateChat(c echo.Context) error {
 
 	// Отримання власного ID
 	creatorId := c.Get(middlewares.UserCtx).(int)
@@ -450,16 +450,16 @@ func (h *Handler) PrivateChat(c echo.Context) error {
 	code, errP := h.services.Chat.GetPrivates(creatorId, userId)
 	if errP != nil {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "wrong users")
-		return errP
+		return nil
 	}
 
 	// Якщо не існує чату, створюємо новий
 	if code == 0 {
 		// Отримуємо дані переданого користувача
-		user, errUser := h.services.Authorization.GetUserById(userId)
+		user, errUser := h.services.Chat.GetUserById(userId)
 		if errUser != nil {
 			responses.NewErrorResponse(c, http.StatusInternalServerError, "wrong user")
-			return errUser
+			return nil
 		}
 
 		// Створюємо новий чат
@@ -470,7 +470,7 @@ func (h *Handler) PrivateChat(c echo.Context) error {
 		chatId, err := h.services.Chat.Create(chat)
 		if err != nil {
 			responses.NewErrorResponse(c, http.StatusInternalServerError, "create chat error")
-			return errUser
+			return nil
 		}
 		code = chatId
 
@@ -480,8 +480,8 @@ func (h *Handler) PrivateChat(c echo.Context) error {
 			UserId: creatorId,
 		})
 		if errAdd != nil {
-			responses.NewErrorResponse(c, http.StatusInternalServerError, "add user to chat error")
-			return errAdd
+			responses.NewErrorResponse(c, http.StatusInternalServerError, "add active user to chat error")
+			return nil
 		}
 
 		// Додаємо отриманого користувача до чату (якщо це не особистий чат)
@@ -492,22 +492,14 @@ func (h *Handler) PrivateChat(c echo.Context) error {
 			})
 			if errNewAdd != nil {
 				responses.NewErrorResponse(c, http.StatusInternalServerError, "add user to chat error")
-				return errNewAdd
+				return nil
 			}
 		}
 	}
 
-	// Отримуємо повідомлення чату
-	messages, errMes := h.services.Message.GetAll(code)
-	if errMes != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "messages error")
-		return errMes
-	}
-
 	// Відгук чату
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
-		"messages": messages,
-		"chatId":   code,
+		"chatId": code,
 	})
 	if errRes != nil {
 		return errRes
@@ -515,7 +507,7 @@ func (h *Handler) PrivateChat(c echo.Context) error {
 	return nil
 }
 
-func (h *Handler) SearchChat(c echo.Context) error {
+func (h *ChatHandler) SearchChat(c echo.Context) error {
 
 	// Отримуємо сегмент назви чату
 	name := c.Param(middlewares.ChatName)
@@ -525,8 +517,8 @@ func (h *Handler) SearchChat(c echo.Context) error {
 	// Отримуємо список чатів
 	chats, err := h.services.Chat.SearchChat(name)
 	if err != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "server error")
-		return err
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "found chats error")
+		return nil
 	}
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
