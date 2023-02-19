@@ -104,11 +104,13 @@ func UploadImage(c echo.Context) (string, error) {
 	//Створюємо порожні файли за необхідних розташуванням
 	tempFile, err := os.CreateTemp("uploads", "upload-*.jpeg")
 	if err != nil {
+		fmt.Sprintf("ffffff")
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "create file error")
 		return "", err
 	}
 	resFile, err := os.Create(fmt.Sprintf("uploads\\resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads\\")))
 	if err != nil {
+		fmt.Sprintf("fdfdf")
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "create file error")
 		return "", err
 	}

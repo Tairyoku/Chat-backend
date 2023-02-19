@@ -344,11 +344,9 @@ func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("work")
 	//Отримуємо дані чату
 	chat, errCh := h.services.Chat.Get(chatId)
 	if errCh != nil {
-		fmt.Println(7)
 
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect chat data")
 		return nil
@@ -359,7 +357,6 @@ func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	chat.Icon = strings.TrimPrefix(fileName, "uploads\\")
 	errPut := h.services.Chat.Update(chat)
 	if errPut != nil {
-		fmt.Println(8)
 
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "update icon error")
 		return nil
@@ -367,11 +364,11 @@ func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 
 	//Видалення застарілих файлів
 	if len(oldIcon) != 0 {
-		if err := os.Remove(fmt.Sprintf("uploads/%s", oldIcon)); err != nil {
+		if err := os.Remove(fmt.Sprintf("uploads\\%s", oldIcon)); err != nil {
 			responses.NewErrorResponse(c, http.StatusInternalServerError, "delete icon error")
 			return nil
 		}
-		if err := os.Remove(fmt.Sprintf("uploads/resize-%s", oldIcon)); err != nil {
+		if err := os.Remove(fmt.Sprintf("uploads\\resize-%s", oldIcon)); err != nil {
 			responses.NewErrorResponse(c, http.StatusInternalServerError, "delete icon error")
 			return nil
 		}

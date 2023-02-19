@@ -22,15 +22,18 @@ func NewAuthHandler(services *service.Service) *AuthHandler {
 
 // SignUp godoc
 // @Summary      Create a new user
-// @Description  add new user
+// @Security ApiKeyAuth
+// @Description  Користувач відправляє ім'я та пароль. За отриманими даними буде створено нового користувача.
+// Сервер поверне ID нового користувача
+// @ID  add-new-user
 // @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Param        user	body     UserResponse   true  "Add user"
 // @Success      200 	{object} IdResponse		 "result is id of user"
-// @Failure 	 400 	{object} ErrorResponse	 "incorrect request data"
-// @Failure 	 404 	{object} ErrorResponse	 "user id not found"
-// @Failure 	 500 	{object} ErrorResponse	 "something went wrong"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 404 	{object} responses.ErrorResponse	 "user id not found"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "something went wrong"
 // @Router       /auth/sign-up [post]
 func (h *AuthHandler) SignUp(c echo.Context) error {
 

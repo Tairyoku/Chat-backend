@@ -1,11 +1,10 @@
 FROM golang:latest
-WORKDIR /app/src/chat-main
-ENV GOPATH=/app
-COPY ./ ./
-#RUN #go get -u github.com/go-sql-driver/mysql
-#RUN go get -u github.com/jinzhu/gorm
-#RUN go get -u github.com/gorilla/mux
-#RUN go get -u github.com/gorilla/handlers
-RUN #go mod download
-RUN go build -o chat-main ./cmd/main.go
-CMD [ "./chat-main" ]
+WORKDIR /app/server
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+COPY . ./
+RUN go build -o docker-server ./cmd/main.go
+
+EXPOSE 8080
+CMD ["./docker-server"]

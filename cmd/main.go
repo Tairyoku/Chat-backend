@@ -14,6 +14,24 @@ import (
 	"os"
 )
 
+// @title          Server API
+// @version        1.0.0
+// @description    Серверна частина онлайн чату.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name Tairyoku
+// @contact.url  https://github.com/Tairyoku
+
+// @license.name Apache 2.0
+// @license.url  http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
+// @host     localhost:8000
+// @BasePath /
+
 func GetConnectionString() string {
 	host := os.Getenv("DB_HOST")
 	if host == "" {
@@ -55,16 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//db, err := repository.NewRepositoryDB(repository.Config{
-	//	Username: os.Getenv("DBUsername"),
-	//	Password: os.Getenv("DBPassword"),
-	//	Host:     os.Getenv("DBHost"),
-	//	Url:      os.Getenv("DBUrl"),
-	//	DBName:   os.Getenv("DBName"),
-	//})
-	//if err != nil {
-	//	log.Fatalf("error %s", err.Error())
-	//}
+
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
 	handlers := handler.NewHandler(services)

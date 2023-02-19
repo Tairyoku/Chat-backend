@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 services:
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
@@ -7,12 +7,17 @@ services:
             -   "8077:80"
         environment:
             - PMA_HOST=db
+#            - MYSQL_USERNAME:root
+#            - MYSQL_ROOT_PASSWORD:secret
         depends_on:
             -   db
+        networks:
+            - app-network
     db:
         container_name: chat_db
+        hostname: db
         image: 'mysql:8.0'
-        environment: 
+        environment:
             - MYSQL_DATABASE=chatDB
             - MYSQL_ROOT_PASSWORD=@root
             - MYSQL_USER=mysql
@@ -26,39 +31,33 @@ services:
             - mysql:/var/lib/mysql
 #            - ./data:/var/lib/mysql
             - ./sql:/docker-entrypoint-initdb.d
-    api:
-        build: .
-        restart: on-failure
-        depends_on: 
+        networks:
+            - app-network
+    go-server:
+        depends_on:
             - db
+        build: .
+        container_name: go-server
+        hostname: go-server
+        ports:
+            - "8000:8080"
+        restart: always
+        networks:
+            - app-network
+        image: golang
         links:
             - db
-        environment: 
+        environment:
             - DB_HOST=db
             - DB_PORT=3306
             - DB_NAME=chatDB
             - DB_USER=root
             - DB_PASS=@root
-        ports:
-            - "8000:8080"
+
 volumes:
     mysql:
-#    webserver:
-#        image: nginx:alpine
-#        container_name: "${DOCKER_PREFIX}-server"
-#        restart: unless-stopped
-#        tty: true
-#        depends_on:
-#            - app
-#        ports:
-#            - "80:80"
-#        volumes:
-#            - ./app:/var/www
-#            - ./docker/nginx/local.conf:/etc/nginx/conf.d/default.conf
-#
-#            - /etc/letsencrypt:/etc/letsencrypt/live/laravel.loc/
-#        networks:
-#            - app-network
-
+networks:
+    app-network:
+        driver: bridge
 
 

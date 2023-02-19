@@ -10,6 +10,7 @@ import (
 	"cmd/pkg/service"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 type Handler struct {
@@ -23,13 +24,13 @@ func NewHandler(services *service.Service) *Handler {
 func (h *Handler) InitRoutes() *echo.Echo {
 	router := echo.New()
 	router.Use(middleware.CORS())
-	UsersHandler := middlewares.NewMiddlewareHandler(h.services)
+	middlewaresHandler := middlewares.NewMiddlewareHandler(h.services)
 	messageHandler := message2.NewMessageHandler(h.services)
 	chatHandler := chat2.NewChatHandler(h.services)
 	authHandler := auth2.NewAuthHandler(h.services)
 	usersHandler := users2.NewUsersHandler(h.services)
 	//SWAGGER
-	//router.GET("/swagger/server/*", echoSwagger.WrapHandler)
+	router.GET("/swagger/server/*", echoSwagger.WrapHandler)
 
 	//WebSocket
 	router.GET("/ws/:roomId", func(c echo.Context) error {
@@ -41,7 +42,7 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	api := router.Group("/api")
 
 	//Посилання на зображення
-	api.Static("/image/", "./uploads")
+	api.Static("/image/", "./uploads/")
 
 	auth := api.Group("/auth")
 	{
@@ -50,16 +51,16 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		//Авторизація
 		auth.POST("/sign-in", authHandler.SignIn)
 		//Отримати ID активного користувача
-		auth.GET("/get-me", authHandler.GetMe, UsersHandler.UserIdentify)
+		auth.GET("/get-me", authHandler.GetMe, middlewaresHandler.UserIdentify)
 		//Змінити пароль
-		auth.PUT("/change/password", authHandler.ChangePassword, UsersHandler.UserIdentify)
+		auth.PUT("/change/password", authHandler.ChangePassword, middlewaresHandler.UserIdentify)
 		//Змінити нікнейм
-		auth.PUT("/change/username", authHandler.ChangeUsername, UsersHandler.UserIdentify)
+		auth.PUT("/change/username", authHandler.ChangeUsername, middlewaresHandler.UserIdentify)
 		//Змінити аватар
-		auth.PUT("/change/icon", authHandler.ChangeIcon, UsersHandler.UserIdentify)
+		auth.PUT("/change/icon", authHandler.ChangeIcon, middlewaresHandler.UserIdentify)
 	}
 
-	users := api.Group("/users/:id", UsersHandler.UserIdentify)
+	users := api.Group("/users/:id", middlewaresHandler.UserIdentify)
 	//Пошук користувачів за нікнеймом
 	api.GET("/users/search/:username", usersHandler.SearchUser)
 	{
@@ -89,7 +90,7 @@ func (h *Handler) InitRoutes() *echo.Echo {
 		users.DELETE("/deleteFriend", usersHandler.DeleteFriend)
 	}
 
-	chat := api.Group("/chats", UsersHandler.UserIdentify)
+	chat := api.Group("/chats", middlewaresHandler.UserIdentify)
 	{
 		//Створити ПУБЛІЧНИЙ чат
 		chat.POST("/create", chatHandler.CreatePublicChat)
