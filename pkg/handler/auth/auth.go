@@ -166,6 +166,8 @@ type ChangePassword struct {
 }
 
 func (h *AuthHandler) ChangePassword(c echo.Context) error {
+	fmt.Println("change pass")
+
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
 
@@ -213,15 +215,17 @@ func (h *AuthHandler) ChangePassword(c echo.Context) error {
 }
 
 func (h *AuthHandler) ChangeUsername(c echo.Context) error {
+	fmt.Println("change name")
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
-
+	fmt.Println(userId)
 	//Отримуємо новий нікнейм
 	var username models.User
 	if errReq := c.Bind(&username); errReq != nil {
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
+	fmt.Println(username)
 
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
@@ -230,17 +234,15 @@ func (h *AuthHandler) ChangeUsername(c echo.Context) error {
 		return nil
 	}
 
-	//Перевіряємо чи існує користувач за його іменем
-	check, errCheck := h.services.Authorization.GetByName(username.Username)
-	if errCheck != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "check user error")
-		return nil
-	}
-	if check.Id != 0 {
-		responses.NewErrorResponse(c, http.StatusConflict, "username is used")
+	//Перевіряємо чи існує користувач за його іменем.
+	//Якщо ім'я не зайняте, повернеться помилка
+	_, errCheck := h.services.Authorization.GetByName(username.Username)
+	if errCheck == nil {
+		responses.NewErrorResponse(c, http.StatusInternalServerError, "username is used")
 		return nil
 	}
 
+	fmt.Println(username.Username)
 	//Оновлюємо нікнейм у БД
 	user.Username = username.Username
 	errPut := h.services.Authorization.UpdateData(user)

@@ -499,7 +499,7 @@ func TestAuthHandler_ChangeUsername(t *testing.T) {
 				}
 				check := models.User{}
 				s.EXPECT().GetUserById(userId).Return(res, nil)
-				s.EXPECT().GetByName(user.Username).Return(check, nil)
+				s.EXPECT().GetByName(user.Username).Return(check, errors.New("record not found"))
 				res.Username = user.Username
 				s.EXPECT().UpdateData(res).Return(nil)
 			},
@@ -531,27 +531,6 @@ func TestAuthHandler_ChangeUsername(t *testing.T) {
 			expectedResponseBody: `{"message":"incorrect user data"}` + "\n",
 		},
 		{
-			name:        "Check user error",
-			inputUserId: 4,
-			inputBody:   `{"username":"new username"}`,
-			inputUserName: models.User{
-				Username: "new username",
-			},
-			mockBehavior: func(s *mockService.MockAuthorization, userId int, user models.User) {
-				res := models.User{
-					Id:       4,
-					Username: "test username",
-					Icon:     "",
-					Password: "",
-				}
-				check := models.User{}
-				s.EXPECT().GetUserById(userId).Return(res, nil)
-				s.EXPECT().GetByName(user.Username).Return(check, errors.New("check user error"))
-			},
-			expectedStatusCode:   500,
-			expectedResponseBody: `{"message":"check user error"}` + "\n",
-		},
-		{
 			name:        "Username is used",
 			inputUserId: 4,
 			inputBody:   `{"username":"new username"}`,
@@ -572,7 +551,7 @@ func TestAuthHandler_ChangeUsername(t *testing.T) {
 				s.EXPECT().GetUserById(userId).Return(res, nil)
 				s.EXPECT().GetByName(user.Username).Return(check, nil)
 			},
-			expectedStatusCode:   409,
+			expectedStatusCode:   500,
 			expectedResponseBody: `{"message":"username is used"}` + "\n",
 		},
 		{
@@ -591,7 +570,7 @@ func TestAuthHandler_ChangeUsername(t *testing.T) {
 				}
 				check := models.User{}
 				s.EXPECT().GetUserById(userId).Return(res, nil)
-				s.EXPECT().GetByName(user.Username).Return(check, nil)
+				s.EXPECT().GetByName(user.Username).Return(check, errors.New("record is not found"))
 				res.Username = user.Username
 				s.EXPECT().UpdateData(res).Return(errors.New("update username error"))
 			},
