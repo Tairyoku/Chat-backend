@@ -43,6 +43,8 @@ func (h *Handler) InitRoutes() *echo.Echo {
 
 	//Посилання на зображення
 	api.Static("/image/", "./uploads/")
+	api.Static("/images/", "./server/uploads/")
+	api.Static("/imageas/", "./app/server/uploads/")
 
 	auth := api.Group("/auth")
 	{

@@ -104,13 +104,23 @@ func UploadImage(c echo.Context) (string, error) {
 	//Створюємо порожні файли за необхідних розташуванням
 	tempFile, err := os.CreateTemp("uploads", "upload-*.jpeg")
 	if err != nil {
-		fmt.Sprintf("ffffff")
+		errDel := os.Remove(tempFile.Name())
+		if errDel != nil {
+			return "", errDel
+		}
+		defer tempFile.Close()
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "create file error")
 		return "", err
 	}
-	resFile, err := os.Create(fmt.Sprintf("uploads\\resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads\\")))
+
+	resFile, err := os.Create(fmt.Sprintf("uploads/resize-%s", strings.TrimPrefix(tempFile.Name(), "uploads/")))
 	if err != nil {
-		fmt.Sprintf("fdfdf")
+		errDel := os.Remove(tempFile.Name())
+		if errDel != nil {
+			return "", errDel
+		}
+		defer tempFile.Close()
+		defer resFile.Close()
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "create file error")
 		return "", err
 	}
@@ -158,7 +168,7 @@ func UploadImage(c echo.Context) (string, error) {
 		return "", err
 	}
 	tempFile.Write(fileBytes)
-
+	fmt.Println("finish")
 	err = jpeg.Encode(resFile, resizedImg, nil)
-	return tempFile.Name(), nil
+	return strings.TrimPrefix(tempFile.Name(), "uploads/"), nil
 }

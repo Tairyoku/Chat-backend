@@ -344,17 +344,17 @@ func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(fileName, " перед зміною імені")
 	//Отримуємо дані чату
 	chat, errCh := h.services.Chat.Get(chatId)
 	if errCh != nil {
-
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect chat data")
 		return nil
 	}
-
 	//Замінюємо дані у БД
 	var oldIcon = chat.Icon
-	chat.Icon = strings.TrimPrefix(fileName, "uploads\\")
+	chat.Icon = strings.TrimPrefix(fileName, "uploads/")
+
 	errPut := h.services.Chat.Update(chat)
 	if errPut != nil {
 
