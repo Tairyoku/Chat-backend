@@ -37,7 +37,6 @@ func (h *hub) Run() {
 		select {
 		case s := <-h.register:
 			connections := h.rooms[s.room]
-			fmt.Printf("connected to room %s\n", s.room)
 			if connections == nil {
 				connections = make(map[*connection]bool)
 				h.rooms[s.room] = connections
@@ -45,7 +44,6 @@ func (h *hub) Run() {
 			h.rooms[s.room][s.conn] = true
 		case s := <-h.unregister:
 			connections := h.rooms[s.room]
-			fmt.Printf("disconnected from room %s\n", s.room)
 			if connections != nil {
 				if _, ok := connections[s.conn]; ok {
 					delete(connections, s.conn)
