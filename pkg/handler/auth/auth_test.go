@@ -40,7 +40,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 				s.EXPECT().GenerateToken(user.Username, user.Password).Return(token, nil)
 			},
 			expectedStatusCode:   200,
-			expectedResponseBody: `{"id":1,"token":"token"}` + "\n",
+			expectedResponseBody: `{"token":"token"}` + "\n",
 		},
 		{
 			name:      "Error request data",
@@ -527,7 +527,7 @@ func TestAuthHandler_ChangeUsername(t *testing.T) {
 				s.EXPECT().GetUserById(userId).Return(res, errors.New("incorrect user data"))
 
 			},
-			expectedStatusCode:   500,
+			expectedStatusCode:   404,
 			expectedResponseBody: `{"message":"incorrect user data"}` + "\n",
 		},
 		{

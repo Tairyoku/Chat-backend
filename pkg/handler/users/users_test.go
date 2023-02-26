@@ -505,7 +505,7 @@ func TestUsersHandler_AcceptInvitation(t *testing.T) {
 				s.EXPECT().UpdateStatus(status).Return(nil)
 			},
 			expectedStatusCode:   200,
-			expectedResponseBody: `{"message":"Invitation accepted"}` + "\n",
+			expectedResponseBody: `{"message":"invitation accepted"}` + "\n",
 		},
 		{
 			name:             "Update status error",
@@ -827,10 +827,10 @@ func TestUsersHandler_DeleteFromBlacklist(t *testing.T) {
 				s.EXPECT().DeleteStatus(status).Return(nil)
 			},
 			expectedStatusCode:   200,
-			expectedResponseBody: `{"message":"User deleted from black list"}` + "\n",
+			expectedResponseBody: `{"message":"user deleted from black list"}` + "\n",
 		},
 		{
-			name:             "Delete status error",
+			name:             "delete status error",
 			inputSenderId:    13,
 			inputRecipientId: 2,
 			mockBehavior: func(s *mockService.MockStatus, senderId, recipientId int) {

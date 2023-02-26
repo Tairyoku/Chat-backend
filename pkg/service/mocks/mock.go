@@ -604,21 +604,6 @@ func (mr *MockMessageMockRecorder) Get(msgId interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockMessage)(nil).Get), msgId)
 }
 
-// GetAll mocks base method.
-func (m *MockMessage) GetAll(chatId int) ([]models.Message, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll", chatId)
-	ret0, _ := ret[0].([]models.Message)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAll indicates an expected call of GetAll.
-func (mr *MockMessageMockRecorder) GetAll(chatId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockMessage)(nil).GetAll), chatId)
-}
-
 // GetLimit mocks base method.
 func (m *MockMessage) GetLimit(chatId, limit int) ([]models.Message, error) {
 	m.ctrl.T.Helper()

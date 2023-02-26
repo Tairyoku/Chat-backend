@@ -45,45 +45,6 @@ func (c *ChatRepository) AddUser(user models.ChatUsers) (int, error) {
 	return user.Id, err
 }
 
-// CheckPrivates отримує ID двох можливих користувачів одного приватного
-// чату ТА повертає масив ID приватних чатів, у яких двічі згадується ID
-// користувачів, поданих як аргументи
-func (c *ChatRepository) CheckPrivates(firstUser, secondUser int) ([]int, error) {
-	var check []int
-	var list []models.ChatUsers
-	var chats []int
-	result := make(map[int]int)
-	queryFirst := fmt.Sprintf("SELECT chul.chat_id, chul.user_id FROM %s chul INNER JOIN %s chl ON chl.id = chul.chat_id WHERE (chul.user_id = ? or chul.user_id = ?) and chl.types = ?",
-		ChatUsersList, ChatsTable)
-	errFirst := c.db.Raw(queryFirst, firstUser, secondUser, ChatPrivate).Scan(&list).Error
-	if errFirst != nil {
-		return nil, errFirst
-	}
-	for i := range list {
-		if list[i].UserId != firstUser {
-			check = append(check, list[i].ChatId)
-		}
-	}
-	for _, v := range check {
-		result[v]++
-	}
-	for k, v := range result {
-		if v >= 1 {
-			chats = append(chats, k)
-		}
-	}
-
-	return chats, nil
-}
-
-// GetByName отримує назву чату ТА повертає його дані
-// ?????????????імена вже не унікальні????????????????
-//func (c *ChatRepository) GetByName(name string) (models.Chat, error) {
-//	var chat models.Chat
-//	err := c.db.Table(ChatsTable).Where("name = ?", name).First(&chat).Error
-//	return chat, err
-//}
-
 // GetUsers отримує ID чату ТА повертає масив користувачів, що приєднані до чату
 func (c *ChatRepository) GetUsers(chatId int) ([]models.User, error) {
 	var users []models.User
@@ -135,8 +96,7 @@ func (c *ChatRepository) GetPublicChats(userId int) ([]models.Chat, error) {
 
 // DeleteUser отримує ID чату ТА ID користувача, та видаляє користувача із чату
 func (c *ChatRepository) DeleteUser(userId, chatId int) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE user_id = ? and chat_id = ?", ChatUsersList)
-	err := c.db.Raw(query, userId, chatId).Scan(&models.ChatUsers{}).Error
+	err := c.db.Table(ChatUsersList).Where("user_id = ? and chat_id = ?", userId, chatId).Delete(&models.ChatUsers{}).Error
 	return err
 }
 
@@ -144,8 +104,6 @@ func (c *ChatRepository) DeleteUser(userId, chatId int) error {
 // назви яких збігаються з аргументом
 func (c *ChatRepository) SearchChat(name string) ([]models.Chat, error) {
 	var chats []models.Chat
-	//query := fmt.Sprintf("SELECT id, username, icon FROM %s  WHERE name LIKE ? and types = ?", UsersTable)
-	//err := c.db.Raw(query, fmt.Sprintf("%%%s%%", name), ChatPublic).Scan(&chats).Error
 	err := c.db.Table(ChatsTable).Where("types = ? AND name LIKE ?", ChatPublic, fmt.Sprintf("%%%s%%", name)).Find(&chats).Error
 	return chats, err
 }
@@ -161,6 +119,5 @@ func (c *ChatRepository) GetUserById(userId int) (models.User, error) {
 	var user models.User
 	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE id = ?", UsersTable)
 	err := c.db.Raw(query, userId).Scan(&user).Error
-	//err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
 	return user, err
 }

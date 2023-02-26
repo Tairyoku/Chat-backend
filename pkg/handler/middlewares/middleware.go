@@ -36,6 +36,9 @@ const (
 	ChatId              = "chatId"
 	Username            = "username"
 	ChatName            = "name"
+	imageSize           = 100
+	imgWidth            = 10
+	imgHeight           = 10
 )
 
 func (h *MiddlewareHandler) UserIdentify(next echo.HandlerFunc) echo.HandlerFunc {
@@ -150,7 +153,7 @@ func UploadImage(c echo.Context) (string, error) {
 	}
 
 	//Приведення зображень до необхідних форми й розмірів
-	var crop = []int{10, 10}
+	var crop = []int{imgWidth, imgHeight}
 	if crop != nil && len(crop) == 2 {
 		analyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
 		topCrop, _ := analyzer.FindBestCrop(img, crop[0], crop[1])
@@ -159,7 +162,7 @@ func UploadImage(c echo.Context) (string, error) {
 		}
 		img = img.(SubImager).SubImage(topCrop)
 	}
-	imgWidth := uint(math.Min(float64(100), float64(img.Bounds().Max.X)))
+	imgWidth := uint(math.Min(float64(imageSize), float64(img.Bounds().Max.X)))
 	resizedImg := resize.Resize(imgWidth, 0, img, resize.Lanczos3)
 
 	//Збереження зображень у новосотворених файлах
@@ -167,8 +170,9 @@ func UploadImage(c echo.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	tempFile.Write(fileBytes)
-	fmt.Println("finish")
+
 	err = jpeg.Encode(resFile, resizedImg, nil)
 	return strings.TrimPrefix(tempFile.Name(), "uploads/"), nil
 }

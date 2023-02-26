@@ -32,7 +32,6 @@ func (a *AuthRepository) GetUserById(userId int) (models.User, error) {
 	var user models.User
 	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE id = ?", UsersTable)
 	err := a.db.Raw(query, userId).Scan(&user).Error
-	//err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
 	return user, err
 }
 

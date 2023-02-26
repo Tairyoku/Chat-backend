@@ -9,7 +9,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/joho/godotenv"
-	//"gorm.io/gorm"
 	"log"
 	"os"
 )
@@ -30,7 +29,7 @@ import (
 // @name Authorization
 
 // @host     localhost:8000
-// @BasePath /
+// @BasePath /api/
 
 func GetConnectionString() string {
 	host := os.Getenv("DB_HOST")

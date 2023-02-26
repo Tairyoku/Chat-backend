@@ -22,18 +22,20 @@ func NewAuthHandler(services *service.Service) *AuthHandler {
 
 // SignUp godoc
 // @Summary      Create a new user
-// @Security ApiKeyAuth
-// @Description  Користувач відправляє ім'я та пароль. За отриманими даними буде створено нового користувача.
-// Сервер поверне ID нового користувача
+// @Description  Користувач відправляє ім'я та пароль.
+// @Description  За отриманими даними буде створено нового користувача.
+// @Description  Сервер поверне token нового користувача.
 // @ID  add-new-user
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        user	body     UserResponse   true  "Add user"
-// @Success      200 	{object} IdResponse		 "result is id of user"
+// @Param        user	body     SignInInput   true  "User data"
+// @Success      200 	{object} TokenResponse	 "result is user token"
 // @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
-// @Failure 	 404 	{object} responses.ErrorResponse	 "user id not found"
-// @Failure 	 500 	{object} responses.ErrorResponse	 "something went wrong"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "You must enter a username"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "Password must be at least 6 symbols"
+// @Failure 	 409 	{object} responses.ErrorResponse	 "username is already used"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "generate token error"
 // @Router       /auth/sign-up [post]
 func (h *AuthHandler) SignUp(c echo.Context) error {
 
@@ -60,7 +62,7 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
 	}
 
 	// Створюємо нового користувача
-	id, errUser := h.services.Authorization.CreateUser(input)
+	_, errUser := h.services.Authorization.CreateUser(input)
 	// При спробі створення користувача з однаковим ім'ям викличеться помилка
 	if errUser != nil {
 		responses.NewErrorResponse(c, http.StatusConflict, "username is already used")
@@ -77,7 +79,6 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
 	// Відгук сервера
 	errRes := c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
-		"id":    id,
 	})
 	if errRes != nil {
 		return errRes
@@ -92,16 +93,17 @@ type SignInInput struct {
 
 // SignIn godoc
 // @Summary      Generate a new user token
-// @Description  get user token
+// @Description  Користувач відправляє ім'я та пароль.
+// @Description  Сервер поверне token існуючого користувача або помилку якщо користувача не існує.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        user	body     SignInInput   true  "Get user token"
-// @Success      200 	{object} TokenResponse   "result is user token"
-// @Failure 	 400 	{object} ErrorResponse	 "incorrect request data"
-// @Failure 	 400 	{object} ErrorResponse	 "incorrect password"
-// @Failure 	 404 	{object} ErrorResponse	 "user not found"
-// @Failure 	 500 	{object} ErrorResponse	 "something went wrong"
+// @Param        user	body     SignInInput   true  "User data"
+// @Success      200 	{object} TokenResponse  "result is user token"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 404 	{object} responses.ErrorResponse	 "user not found"
+// @Failure 	 409 	{object} responses.ErrorResponse	 "incorrect password"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "check user error"
 // @Router       /auth/sign-in [post]
 func (h *AuthHandler) SignIn(c echo.Context) error {
 
@@ -140,6 +142,15 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 	return nil
 }
 
+// GetMe godoc
+// @Summary      Decoded user ID
+// @Description  Отримує у header запиту токен, повертає ID користувача.
+// @Security ApiKeyAuth
+// @Tags         auth
+// @Produce      json
+// @Success      200 	{object} TokenResponse   "result is user ID"
+// @Failure 	 404 	{object} IdResponse	 "user not found"
+// @Router       /auth/get-me [get]
 func (h *AuthHandler) GetMe(c echo.Context) error {
 
 	// Отримуємо ID активного користувача
@@ -165,8 +176,23 @@ type ChangePassword struct {
 	NewPassword string `json:"new_password" form:"new_password"  binding:"required"`
 }
 
+// ChangePassword godoc
+// @Summary      Change user password
+// @Description  Користувач надсилає поточний та новий паролі.
+// @Description	 Після перевірки правильності ведення поточного паролю, змінює пароль на новий.
+// @Security ApiKeyAuth
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        passwords	body     ChangePassword  	 true  	 "actual and new password"
+// @Success      200 	{object} MessageResponse   			 "password changed"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "password must be at least 6 symbols"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect password"
+// @Failure 	 404 	{object} responses.ErrorResponse	 "incorrect user data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "update password error"
+// @Router       /auth/change/password [put]
 func (h *AuthHandler) ChangePassword(c echo.Context) error {
-	fmt.Println("change pass")
 
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
@@ -214,23 +240,37 @@ func (h *AuthHandler) ChangePassword(c echo.Context) error {
 	return nil
 }
 
+// ChangeUsername godoc
+// @Summary      Change username
+// @Description  Користувач надсилає новий нікнейм.
+// @Description	 Після перевірки нового нікнейму на унікальність, змінює нікнейм на новий.
+// @Security ApiKeyAuth
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        username	body     UsernameInput  	 true 	 "New username"
+// @Success      200 	{object} MessageResponse  			 "username changed"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 404 	{object} responses.ErrorResponse	 "incorrect user data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "username is used"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "update username error"
+// @Router       /auth/change/username [put]
 func (h *AuthHandler) ChangeUsername(c echo.Context) error {
-	fmt.Println("change name")
+
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
-	fmt.Println(userId)
+
 	//Отримуємо новий нікнейм
 	var username models.User
 	if errReq := c.Bind(&username); errReq != nil {
 		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect request data")
 		return nil
 	}
-	fmt.Println(username)
 
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
 	if errU != nil {
-		responses.NewErrorResponse(c, http.StatusInternalServerError, "incorrect user data")
+		responses.NewErrorResponse(c, http.StatusNotFound, "incorrect user data")
 		return nil
 	}
 
@@ -242,7 +282,6 @@ func (h *AuthHandler) ChangeUsername(c echo.Context) error {
 		return nil
 	}
 
-	fmt.Println(username.Username)
 	//Оновлюємо нікнейм у БД
 	user.Username = username.Username
 	errPut := h.services.Authorization.UpdateData(user)
@@ -261,7 +300,19 @@ func (h *AuthHandler) ChangeUsername(c echo.Context) error {
 	return nil
 }
 
+// ChangeIcon godoc
+// @Summary      Change username
+// @Description  Користувач надсилає новий файл зображення. Замінює зображення на нове.
+// @Security ApiKeyAuth
+// @Tags         auth
+// @Produce      json
+// @Success      200 	{object} MessageResponse  			 "icon changed"
+// @Failure 	 404 	{object} responses.ErrorResponse	 "incorrect user data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "update icon error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "delete icon error"
+// @Router       /auth/change/icon [put]
 func (h *AuthHandler) ChangeIcon(c echo.Context) error {
+
 	//Отримуємо власний ID з контексту
 	userId := c.Get(middlewares.UserCtx).(int)
 
@@ -274,7 +325,7 @@ func (h *AuthHandler) ChangeIcon(c echo.Context) error {
 	//Отримуємо дані активного користувача
 	user, errU := h.services.Authorization.GetUserById(userId)
 	if errU != nil {
-		responses.NewErrorResponse(c, http.StatusBadRequest, "incorrect user data")
+		responses.NewErrorResponse(c, http.StatusNotFound, "incorrect user data")
 		return nil
 	}
 

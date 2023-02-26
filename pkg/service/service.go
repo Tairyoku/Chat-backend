@@ -90,8 +90,6 @@ type Message interface {
 	Create(msg models.Message) (int, error)
 	// Get викликає повернення повідомлення за його ID
 	Get(msgId int) (models.Message, error)
-	// GetAll викликає повернення усіх повідомлень чату за його ID
-	GetAll(chatId int) ([]models.Message, error)
 	// GetLimit викликає повернення певної кількості повідомлень чату за його ID
 	GetLimit(chatId, limit int) ([]models.Message, error)
 	// DeleteAll викликає видалення усіх повідомлень чата за його ID

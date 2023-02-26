@@ -1,0 +1,1191 @@
+basePath: /api/
+definitions:
+  auth.ChangePassword:
+    properties:
+      new_password:
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  auth.IdResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  auth.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  auth.SignInInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  auth.TokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  auth.UsernameInput:
+    properties:
+      username:
+        type: string
+    type: object
+  chat.ChatAndUserResponse:
+    properties:
+      chat:
+        $ref: '#/definitions/models.Chat'
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  chat.ChatIdResponse:
+    properties:
+      chat_id:
+        type: string
+    type: object
+  chat.ChatListResponse:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/models.Chat'
+        type: array
+    type: object
+  chat.ChatResponse:
+    properties:
+      chat:
+        $ref: '#/definitions/models.Chat'
+    type: object
+  chat.IdResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  chat.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  chat.NameInput:
+    properties:
+      name:
+        type: string
+    type: object
+  chat.UserIdInput:
+    properties:
+      user_id:
+        type: integer
+    type: object
+  messages.IdResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  messages.MessageListResponse:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
+  messages.MessageResponse:
+    properties:
+      message:
+        $ref: '#/definitions/models.Message'
+    type: object
+  messages.TextInput:
+    properties:
+      text:
+        type: string
+    type: object
+  models.Chat:
+    properties:
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      types:
+        type: string
+    required:
+    - icon
+    - name
+    type: object
+  models.Message:
+    properties:
+      author:
+        type: integer
+      chat_id:
+        type: integer
+      id:
+        type: integer
+      sent_at:
+        type: string
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  models.User:
+    properties:
+      icon:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - icon
+    - password
+    - username
+    type: object
+  responses.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  users.IdResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  users.ListResponse:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
+  users.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  users.StatusesListResponse:
+    properties:
+      blacklist:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      friends:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      invites:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      onBlacklist:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      requires:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
+  users.UserResponse:
+    properties:
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+host: localhost:8000
+info:
+  contact:
+    name: Tairyoku
+    url: https://github.com/Tairyoku
+  description: Серверна частина онлайн чату.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Server API
+  version: 1.0.0
+paths:
+  /auth/change/icon:
+    put:
+      description: Користувач надсилає новий файл зображення. Замінює зображення на
+        нове.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: icon changed
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "404":
+          description: incorrect user data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: delete icon error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Change username
+      tags:
+      - auth
+  /auth/change/password:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Користувач надсилає поточний та новий паролі.
+        Після перевірки правильності ведення поточного паролю, змінює пароль на новий.
+      parameters:
+      - description: actual and new password
+        in: body
+        name: passwords
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ChangePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: password changed
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "400":
+          description: incorrect password
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: incorrect user data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: update password error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Change user password
+      tags:
+      - auth
+  /auth/change/username:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Користувач надсилає новий нікнейм.
+        Після перевірки нового нікнейму на унікальність, змінює нікнейм на новий.
+      parameters:
+      - description: New username
+        in: body
+        name: username
+        required: true
+        schema:
+          $ref: '#/definitions/auth.UsernameInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: username changed
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "400":
+          description: incorrect request data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: incorrect user data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: update username error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Change username
+      tags:
+      - auth
+  /auth/get-me:
+    get:
+      description: Отримує у header запиту токен, повертає ID користувача.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is user ID
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "404":
+          description: user not found
+          schema:
+            $ref: '#/definitions/auth.IdResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Decoded user ID
+      tags:
+      - auth
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Користувач відправляє ім'я та пароль.
+        Сервер поверне token існуючого користувача або помилку якщо користувача не існує.
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/auth.SignInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is user token
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "400":
+          description: incorrect request data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: user not found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: incorrect password
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: check user error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Generate a new user token
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Користувач відправляє ім'я та пароль.
+        За отриманими даними буде створено нового користувача.
+        Сервер поверне token нового користувача.
+      operationId: add-new-user
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/auth.SignInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is user token
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "400":
+          description: Password must be at least 6 symbols
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: username is already used
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: generate token error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Create a new user
+      tags:
+      - auth
+  /chats/{chatId}/messages:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Отримує текст повідомлення.
+        Створює повідомлення.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: integer
+      - description: Message text
+        in: body
+        name: message_text
+        required: true
+        schema:
+          $ref: '#/definitions/messages.TextInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return message ID
+          schema:
+            $ref: '#/definitions/messages.IdResponse'
+        "400":
+          description: body is empty
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: create message error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create message
+      tags:
+      - message
+  /chats/{chatId}/messages/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID повідомлення.
+        Повертає повідомлення.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: integer
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return message ID
+          schema:
+            $ref: '#/definitions/messages.MessageResponse'
+        "500":
+          description: get message error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get message by ID
+      tags:
+      - message
+  /chats/{chatId}/messages/limit/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID чату.
+        Повертає певну кількість повідомлень чату.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: integer
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return message ID
+          schema:
+            $ref: '#/definitions/messages.MessageListResponse'
+        "500":
+          description: get limit error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get limited message list
+      tags:
+      - message
+  /chats/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Отримує ID чату. Видаляє чат.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: chat  deleted
+          schema:
+            $ref: '#/definitions/chat.MessageResponse'
+        "500":
+          description: messages delete error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete chat
+      tags:
+      - chat
+    get:
+      consumes:
+      - application/json
+      description: Отримує ID чату. Повертає дані чату.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is chat data
+          schema:
+            $ref: '#/definitions/chat.ChatResponse'
+        "500":
+          description: get chat error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get chat info
+      tags:
+      - chat
+  /chats/{id}/add:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID чату та користувача.
+        Додає користувача до чату.
+        Повертає ID зв'язку між чатами та користувачами.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: body
+        name: user_id
+        required: true
+        schema:
+          $ref: '#/definitions/chat.UserIdInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is ID of chats and users relations
+          schema:
+            $ref: '#/definitions/chat.IdResponse'
+        "400":
+          description: incorrect request data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: add user to chat error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Add user to chat
+      tags:
+      - chat
+  /chats/{id}/delete:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID чату та користувача.
+        Видаляє користувача з чату.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: body
+        name: user_id
+        required: true
+        schema:
+          $ref: '#/definitions/chat.UserIdInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user deleted from chat
+          schema:
+            $ref: '#/definitions/chat.MessageResponse'
+        "400":
+          description: incorrect request data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: messages delete error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user from chat
+      tags:
+      - chat
+  /chats/{id}/icon:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID чату та файл зображення.
+        Оновлює зображення користувача.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: icon changed
+          schema:
+            $ref: '#/definitions/chat.MessageResponse'
+        "400":
+          description: incorrect chat data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: delete icon error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Change chat icon
+      tags:
+      - chat
+  /chats/{id}/link:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID чату.
+        Повертає дані чату та, якщо чат приватний, користувача.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is chat data (and user data)
+          schema:
+            $ref: '#/definitions/chat.ChatAndUserResponse'
+        "500":
+          description: get users error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get chat (and if chat is private - user) info
+      tags:
+      - chat
+  /chats/{id}/users:
+    get:
+      consumes:
+      - application/json
+      description: Отримує ID чату. Повертає список користувачів чату.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is list of chat`s users
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.User'
+              type: array
+            type: array
+        "500":
+          description: get users error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get chat`s users
+      tags:
+      - chat
+  /chats/{userId}/private:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID другого користувача приватного чату.
+        Якщо чат вже існує, повертає його ID.
+        Якщо чату не існує, створює його, та повертає ID чату.
+        Якщо другий користувач є поточним користувачем,
+        створює (за необхідністю) персональний чат та повертає його ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return chat ID
+          schema:
+            $ref: '#/definitions/chat.ChatIdResponse'
+        "500":
+          description: add second user to chat error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create private chat and/or get chat ID
+      tags:
+      - chat
+  /chats/create:
+    post:
+      consumes:
+      - application/json
+      description: Отримує ім'я чату. Створює новий чат. Повертає ID чату.
+      parameters:
+      - description: Chat name
+        in: body
+        name: chat_name
+        required: true
+        schema:
+          $ref: '#/definitions/chat.NameInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is chat ID
+          schema:
+            $ref: '#/definitions/chat.IdResponse'
+        "400":
+          description: name is empty
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: add user to chat error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new public chat
+      tags:
+      - chat
+  /chats/search/{name}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує частину імені користувача.
+        Повертає список користувачів, ім'я яких повністю або частково збігається.
+      parameters:
+      - description: Slice of chats
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return found users
+          schema:
+            $ref: '#/definitions/chat.ChatListResponse'
+        "500":
+          description: found chats error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get found users
+      tags:
+      - chat
+  /chats/users/{id}/private:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Повертає список приватних чатів користувача.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is list of chats
+          schema:
+            $ref: '#/definitions/chat.ChatListResponse'
+        "500":
+          description: get users error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user`s private chats
+      tags:
+      - chat
+  /chats/users/{id}/public:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Повертає список публічних чатів, в яких є користувач.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: result is list of chats
+          schema:
+            $ref: '#/definitions/chat.ChatListResponse'
+        "500":
+          description: get chats error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user`s public chats
+      tags:
+      - chat
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Повертає дані користувача.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return user`s data
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "500":
+          description: get user error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user`s data by ID
+      tags:
+      - users
+  /users/{id}/accept:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Підтверджує запит на дружбу поточного користувача з отриманим.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: invitation accepted
+          schema:
+            $ref: '#/definitions/users.MessageResponse'
+        "500":
+          description: update status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Accept friendship invitation
+      tags:
+      - users
+  /users/{id}/addToBL:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Блокує користувача.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user is blocked
+          schema:
+            $ref: '#/definitions/users.IdResponse'
+        "500":
+          description: add status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Block user
+      tags:
+      - users
+  /users/{id}/all:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Повертає списки відносин між користувачем та іншими користувачами.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: return user`s status lists
+          schema:
+            $ref: '#/definitions/users.StatusesListResponse'
+        "500":
+          description: friend requires list error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user`s relationship lists by ID
+      tags:
+      - users
+  /users/{id}/cancel:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Видаляє запит на дружбу поточного користувача з отриманим.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: invite deleted
+          schema:
+            $ref: '#/definitions/users.MessageResponse'
+        "500":
+          description: delete status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel friendship invitation
+      tags:
+      - users
+  /users/{id}/deleteFriend:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Видаляє користувача зі списку друзів.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: friend deleted
+          schema:
+            $ref: '#/definitions/users.MessageResponse'
+        "500":
+          description: delete status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete friend
+      tags:
+      - users
+  /users/{id}/deleteFromBlacklist:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Видаляє користувача зі списку заблокованих.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user deleted from black list
+          schema:
+            $ref: '#/definitions/users.MessageResponse'
+        "500":
+          description: delete status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete from blacklist
+      tags:
+      - users
+  /users/{id}/invite:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Створює запит на дружбу поточного користувача з отриманим.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: require is sent
+          schema:
+            $ref: '#/definitions/users.IdResponse'
+        "500":
+          description: add status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create friendship invitation
+      tags:
+      - users
+  /users/{id}/refuse:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Отримує ID користувача.
+        Відхиляє запит на дружбу поточного користувача з отриманим.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: invitation refused
+          schema:
+            $ref: '#/definitions/users.MessageResponse'
+        "500":
+          description: delete status error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Refuse friendship invitation
+      tags:
+      - users
+  /users/search/{username}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Отримує частину імені чату.
+        Повертає список користувачів, ім'я яких повністю або частково збігається.
+      parameters:
+      - description: Slice of users
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: lisl of found chats
+          schema:
+            $ref: '#/definitions/users.ListResponse'
+        "500":
+          description: search users error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get found chats
+      tags:
+      - users
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

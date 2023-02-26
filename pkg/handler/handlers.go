@@ -1,6 +1,7 @@
 package handler
 
 import (
+	_ "cmd/docs"
 	auth2 "cmd/pkg/handler/auth"
 	chat2 "cmd/pkg/handler/chat"
 	message2 "cmd/pkg/handler/message"
@@ -30,7 +31,7 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	authHandler := auth2.NewAuthHandler(h.services)
 	usersHandler := users2.NewUsersHandler(h.services)
 	//SWAGGER
-	router.GET("/swagger/server/*", echoSwagger.WrapHandler)
+	router.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	//WebSocket
 	router.GET("/ws/:roomId", func(c echo.Context) error {
@@ -43,8 +44,6 @@ func (h *Handler) InitRoutes() *echo.Echo {
 
 	//Посилання на зображення
 	api.Static("/image/", "./uploads/")
-	api.Static("/images/", "./server/uploads/")
-	api.Static("/imageas/", "./app/server/uploads/")
 
 	auth := api.Group("/auth")
 	{
@@ -67,7 +66,6 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	api.GET("/users/search/:username", usersHandler.SearchUser)
 	{
 
-		// МОЖНА ОБ'ЄДНАТИ ПУБЛІЧНІ ТА ПРИВАТНІ ЧАТИ
 		//Отримати усі ПУБЛІЧНІ чати користувача
 		users.GET("/public", chatHandler.GetUserPublicChats)
 		//Отримати усі ОСОБИСТІ чати користувача
@@ -122,11 +120,9 @@ func (h *Handler) InitRoutes() *echo.Echo {
 	{
 		//Створити повідомлення
 		message.POST("", messageHandler.CreateMessage)
-		//Отримати повідомлення
-		message.GET("", messageHandler.GetAllMessages)
 		//Отримати певну кількість повідомлень
 		message.GET("/limit/:id", messageHandler.GetLimitMessages)
-		//
+		//Отримати повідомлення за його ID
 		message.GET("/:id", messageHandler.GetMessage)
 	}
 	return router

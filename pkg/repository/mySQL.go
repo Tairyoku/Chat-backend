@@ -7,17 +7,16 @@ import (
 )
 
 const (
-	UsersTable        = "users"
-	StatusesTable     = "users_relationship"
-	ChatMessagesTable = "chat_messages"
-	ChatUsersList     = "chat_users"
-	ChatsTable        = "chats"
-	MessagesTable     = "messages"
-	StatusFriends     = "friends"
-	StatusBL          = "black_list"
-	StatusInvitation  = "invitation"
-	ChatPrivate       = "private"
-	ChatPublic        = "public"
+	UsersTable       = "users"
+	StatusesTable    = "users_relationship"
+	ChatUsersList    = "chat_users"
+	ChatsTable       = "chats"
+	MessagesTable    = "messages"
+	StatusFriends    = "friends"
+	StatusBL         = "black_list"
+	StatusInvitation = "invitation"
+	ChatPrivate      = "private"
+	ChatPublic       = "public"
 )
 
 type Config struct {

@@ -34,7 +34,7 @@ func TestMessageHandler_CreateMessage(t *testing.T) {
 				Author: 5,
 				ChatId: 3,
 				Text:   "test body",
-				SentAt: time.Date(2023, 10, 10, 10, 10, 10, 10, time.UTC),
+				SentAt: time.Now().Round(10 * time.Millisecond),
 			},
 			mockBehavior: func(s *mockService.MockMessage, msg models.Message) {
 				s.EXPECT().Create(msg).Return(1, nil)
@@ -46,7 +46,6 @@ func TestMessageHandler_CreateMessage(t *testing.T) {
 			name:      "empty body",
 			inputText: `{"text":""}`,
 			mockBehavior: func(s *mockService.MockMessage, msg models.Message) {
-				//s.EXPECT().Create(msg).Return(1, nil)
 			},
 			expectedStatusCode:   400,
 			expectedResponseBody: `{"message":"body is empty"}` + "\n",
@@ -58,7 +57,7 @@ func TestMessageHandler_CreateMessage(t *testing.T) {
 				Author: 5,
 				ChatId: 3,
 				Text:   "test body",
-				SentAt: time.Date(2023, 10, 10, 10, 10, 10, 10, time.UTC),
+				SentAt: time.Now().Round(10 * time.Millisecond),
 			},
 			mockBehavior: func(s *mockService.MockMessage, msg models.Message) {
 				s.EXPECT().Create(msg).Return(0, errors.New("create message error"))
@@ -191,155 +190,3 @@ func TestMessageHandler_GetLimitMessagesMessage(t *testing.T) {
 	}
 
 }
-
-//
-//func TestHandler_UpdateComment(t *testing.T) {
-//	type mockBehavior func(s *mockService.MockComment, postId int, id int, comment models.Comment)
-//
-//	testTable := []struct {
-//		name                 string
-//		postId               int
-//		commentId            int
-//		inputBody            string
-//		inputComment         models.Comment
-//		mockBehavior         mockBehavior
-//		expectedStatusCode   int
-//		expectedResponseBody string
-//	}{
-//		{
-//			name:      "ok",
-//			postId:    3,
-//			commentId: 4,
-//			inputBody: `{"body":"test body"}`,
-//			inputComment: models.Comment{
-//				Body: "test body",
-//			},
-//			mockBehavior: func(s *mockService.MockComment, postId int, id int, comment models.Comment) {
-//				s.EXPECT().Update(postId, id, comment).Return(nil)
-//			},
-//			expectedStatusCode:   202,
-//			expectedResponseBody: `{"message":"Comment with id 4 updated."}` + "\n",
-//		},
-//		{
-//			name:      "server error",
-//			postId:    3,
-//			commentId: 4,
-//			inputBody: `{"body":"test body"}`,
-//			inputComment: models.Comment{
-//				Body: "test body",
-//			},
-//			mockBehavior: func(s *mockService.MockComment, postId int, id int, comment models.Comment) {
-//				s.EXPECT().Update(postId, id, comment).Return(errors.New("server error"))
-//			},
-//			expectedStatusCode:   500,
-//			expectedResponseBody: `{"message":"server error"}` + "\n",
-//		},
-//	}
-//
-//	for _, testCase := range testTable {
-//		t.Run(testCase.name, func(t *testing.T) {
-//
-//			//Начальные значения
-//			//настраиваем логику оболочек (подключаем все уровни)
-//			c := gomock.NewController(t)
-//			defer c.Finish()
-//
-//			comment := mockService.NewMockComment(c)
-//			testCase.mockBehavior(comment, testCase.postId, testCase.commentId, testCase.inputComment)
-//
-//			services := &service.Service{Comment: comment}
-//			handler := handler2.NewHandler(services)
-//
-//			//Тестовый сервер
-//			e := echo.New()
-//
-//			//Тестовый запрос
-//			req := httptest.NewRequest(http.MethodPut, "/api/posts/:postId/comments/:id",
-//				strings.NewReader(testCase.inputBody))
-//			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-//			rec := httptest.NewRecorder()
-//			ctx := e.NewContext(req, rec)
-//			ctx.Set(middlewares.userCtx, 3)
-//			ctx.SetPath("/api/posts/:postId/comments/:id")
-//			ctx.SetParamNames("postId", "id")
-//			ctx.SetParamValues("3", "4")
-//
-//			//Проверка результатов
-//			if assert.NoError(t, handler.UpdateComment(ctx)) {
-//				assert.Equal(t, testCase.expectedStatusCode, rec.Code)
-//				assert.Equal(t, testCase.expectedResponseBody, rec.Body.String())
-//			}
-//		})
-//	}
-//
-//}
-//
-//func TestHandler_DeleteComment(t *testing.T) {
-//	type mockBehavior func(s *mockService.MockComment, postId int, id int)
-//
-//	testTable := []struct {
-//		name                 string
-//		postId               int
-//		commentId            int
-//		mockBehavior         mockBehavior
-//		expectedStatusCode   int
-//		expectedResponseBody string
-//	}{
-//		{
-//			name:      "ok",
-//			postId:    3,
-//			commentId: 4,
-//			mockBehavior: func(s *mockService.MockComment, postId int, id int) {
-//				s.EXPECT().Delete(postId, id).Return(nil)
-//			},
-//			expectedStatusCode:   202,
-//			expectedResponseBody: `{"message":"Comment with id 4 deleted."}` + "\n",
-//		},
-//		{
-//			name:      "server error",
-//			postId:    3,
-//			commentId: 4,
-//
-//			mockBehavior: func(s *mockService.MockComment, postId int, id int) {
-//				s.EXPECT().Delete(postId, id).Return(errors.New("server error"))
-//			},
-//			expectedStatusCode:   500,
-//			expectedResponseBody: `{"message":"server error"}` + "\n",
-//		},
-//	}
-//
-//	for _, testCase := range testTable {
-//		t.Run(testCase.name, func(t *testing.T) {
-//
-//			//Начальные значения
-//			//настраиваем логику оболочек (подключаем все уровни)
-//			c := gomock.NewController(t)
-//			defer c.Finish()
-//
-//			comment := mockService.NewMockComment(c)
-//			testCase.mockBehavior(comment, testCase.postId, testCase.commentId)
-//
-//			services := &service.Service{Comment: comment}
-//			handler := handler2.NewHandler(services)
-//
-//			//Тестовый сервер
-//			e := echo.New()
-//
-//			//Тестовый запрос
-//			req := httptest.NewRequest(http.MethodDelete, "/api/posts/:postId/comments/:id", nil)
-//			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-//			rec := httptest.NewRecorder()
-//			ctx := e.NewContext(req, rec)
-//			ctx.SetPath("/api/posts/:postId/comments/:id")
-//			ctx.SetParamNames("postId", "id")
-//			ctx.SetParamValues("3", "4")
-//
-//			//Проверка результатов
-//			if assert.NoError(t, handler.DeleteComment(ctx)) {
-//				assert.Equal(t, testCase.expectedStatusCode, rec.Code)
-//				assert.Equal(t, testCase.expectedResponseBody, rec.Body.String())
-//			}
-//		})
-//	}
-//
-//}

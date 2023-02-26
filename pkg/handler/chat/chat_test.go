@@ -1260,7 +1260,7 @@ func TestChatHandler_PrivateChat(t *testing.T) {
 				}).Return(0, errors.New("some error"))
 			},
 			expectedStatusCode:   500,
-			expectedResponseBody: `{"message":"add user to chat error"}` + "\n",
+			expectedResponseBody: `{"message":"add second user to chat error"}` + "\n",
 		},
 	}
 

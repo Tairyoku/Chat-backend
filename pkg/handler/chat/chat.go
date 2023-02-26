@@ -21,6 +21,20 @@ func NewChatHandler(services *service.Service) *ChatHandler {
 	return &ChatHandler{services: services}
 }
 
+// CreatePublicChat godoc
+// @Summary      Create a new public chat
+// @Description  Отримує ім'я чату. Створює новий чат. Повертає ID чату.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        chat_name	body     NameInput   true  "Chat name"
+// @Success      200 	{object} IdResponse   "result is chat ID"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "name is empty"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "create message error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "add user to chat error"
+// @Router       /chats/create [post]
 func (h *ChatHandler) CreatePublicChat(c echo.Context) error {
 
 	// Отримуємо дані з сайту (ім'я) та перевіряємо їх
@@ -68,6 +82,17 @@ func (h *ChatHandler) CreatePublicChat(c echo.Context) error {
 	return nil
 }
 
+// GetChat godoc
+// @Summary      Get chat info
+// @Description  Отримує ID чату. Повертає дані чату.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Success      200 	{object} ChatResponse   "result is chat data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get chat error"
+// @Router       /chats/{id} [get]
 func (h *ChatHandler) GetChat(c echo.Context) error {
 
 	// Отримуємо ID чату
@@ -93,6 +118,19 @@ func (h *ChatHandler) GetChat(c echo.Context) error {
 	return nil
 }
 
+// GetById godoc
+// @Summary      Get chat (and if chat is private - user) info
+// @Description  Отримує ID чату.
+// @Description  Повертає дані чату та, якщо чат приватний, користувача.
+// @Security ApiKeyAuth
+// @Accept       json
+// @Tags         chat
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Success      200 	{object} ChatAndUserResponse   "result is chat data (and user data)"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "no chat error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get users error"
+// @Router       /chats/{id}/link [get]
 func (h *ChatHandler) GetById(c echo.Context) error {
 
 	// Отримання власного ID
@@ -103,10 +141,6 @@ func (h *ChatHandler) GetById(c echo.Context) error {
 	if errParamC != nil {
 		return errParamC
 	}
-	//if chatId == 0 {
-	//	responses.NewErrorResponse(c, http.StatusBadRequest, "no chat id")
-	//	return nil
-	//}
 
 	// Отримання даних чату
 	chat, err := h.services.Chat.Get(chatId)
@@ -148,6 +182,17 @@ func (h *ChatHandler) GetById(c echo.Context) error {
 	return nil
 }
 
+// GetUsers godoc
+// @Summary      Get chat`s users
+// @Description  Отримує ID чату. Повертає список користувачів чату.
+// @Security ApiKeyAuth
+// @Accept       json
+// @Tags         chat
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Success      200 	{array} []models.User  "result is list of chat`s users"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get users error"
+// @Router       /chats/{id}/users [get]
 func (h *ChatHandler) GetUsers(c echo.Context) error {
 
 	// отримуємо ID чату
@@ -171,6 +216,18 @@ func (h *ChatHandler) GetUsers(c echo.Context) error {
 	return nil
 }
 
+// GetUserPublicChats godoc
+// @Summary      Get user`s public chats
+// @Description  Отримує ID користувача.
+// @Description  Повертає список публічних чатів, в яких є користувач.
+// @Security ApiKeyAuth
+// @Accept       json
+// @Tags         chat
+// @Produce      json
+// @Param        id		path     int   true  "User ID"
+// @Success      200 	{object} ChatListResponse  "result is list of chats"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get chats error"
+// @Router       /chats/users/{id}/public [get]
 func (h *ChatHandler) GetUserPublicChats(c echo.Context) error {
 
 	// Отримуємо ID користувача
@@ -196,6 +253,19 @@ func (h *ChatHandler) GetUserPublicChats(c echo.Context) error {
 	return nil
 }
 
+// GetUserPrivateChats godoc
+// @Summary      Get user`s private chats
+// @Description  Отримує ID користувача.
+// @Description  Повертає список приватних чатів користувача.
+// @Security ApiKeyAuth
+// @Accept       json
+// @Tags         chat
+// @Produce      json
+// @Param        id		path     int   true  "User ID"
+// @Success      200 	{object} ChatListResponse  "result is list of chats"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get chats error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get users error"
+// @Router       /chats/users/{id}/private [get]
 func (h *ChatHandler) GetUserPrivateChats(c echo.Context) error {
 
 	// Отримання власного ID
@@ -244,6 +314,21 @@ func (h *ChatHandler) GetUserPrivateChats(c echo.Context) error {
 	return nil
 }
 
+// AddUserToChat godoc
+// @Summary      Add user to chat
+// @Description  Отримує ID чату та користувача.
+// @Description  Додає користувача до чату.
+// @Description  Повертає ID зв'язку між чатами та користувачами.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Param        user_id	body     UserIdInput   true  "User ID"
+// @Success      200 	{object} IdResponse   "result is ID of chats and users relations"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "add user to chat error"
+// @Router       /chats/{id}/add [post]
 func (h *ChatHandler) AddUserToChat(c echo.Context) error {
 
 	// Отримуємо ID чату
@@ -277,6 +362,23 @@ func (h *ChatHandler) AddUserToChat(c echo.Context) error {
 	return nil
 }
 
+// DeleteUserFromChat godoc
+// @Summary      Delete user from chat
+// @Description  Отримує ID чату та користувача.
+// @Description  Видаляє користувача з чату.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Param        user_id	body     UserIdInput   true  "User ID"
+// @Success      200 	{object} MessageResponse			"user deleted from chat"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect request data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "delete user error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get chat users error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "chat delete error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "messages delete error"
+// @Router       /chats/{id}/delete [put]
 func (h *ChatHandler) DeleteUserFromChat(c echo.Context) error {
 
 	// Отримуємо ID користувача від сайту
@@ -333,6 +435,20 @@ func (h *ChatHandler) DeleteUserFromChat(c echo.Context) error {
 	return nil
 }
 
+// ChangeChatIcon godoc
+// @Summary      Change chat icon
+// @Description  Отримує ID чату та файл зображення.
+// @Description  Оновлює зображення користувача.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Success      200 	{object} MessageResponse			"icon changed"
+// @Failure 	 400 	{object} responses.ErrorResponse	 "incorrect chat data"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "update icon error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "delete icon error"
+// @Router       /chats/{id}/icon [put]
 func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	// Отримуємо ID чату
 	chatId, errParamC := middlewares.GetParam(c, middlewares.ParamId)
@@ -344,7 +460,7 @@ func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(fileName, " перед зміною імені")
+
 	//Отримуємо дані чату
 	chat, errCh := h.services.Chat.Get(chatId)
 	if errCh != nil {
@@ -384,6 +500,20 @@ func (h *ChatHandler) ChangeChatIcon(c echo.Context) error {
 	return nil
 }
 
+// DeleteChat godoc
+// @Summary      Delete chat
+// @Description  Отримує ID чату. Видаляє чат.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id		path     int   true  "Chat ID"
+// @Success      200 	{object} MessageResponse			"chat  deleted"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "get chat users error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "delete user from chat error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "chat delete error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "messages delete error"
+// @Router       /chats/{id} [delete]
 func (h *ChatHandler) DeleteChat(c echo.Context) error {
 
 	// Отримуємо ID чату
@@ -398,7 +528,6 @@ func (h *ChatHandler) DeleteChat(c echo.Context) error {
 		responses.NewErrorResponse(c, http.StatusInternalServerError, "get chat users error")
 		return nil
 	}
-
 	// Видаляємо усіх користувачів з чату
 	for _, user := range users {
 		errDelUser := h.services.Chat.DeleteUser(user.Id, chatId)
@@ -432,6 +561,25 @@ func (h *ChatHandler) DeleteChat(c echo.Context) error {
 	return nil
 }
 
+// PrivateChat godoc
+// @Summary      Create private chat and/or get chat ID
+// @Description  Отримує ID другого користувача приватного чату.
+// @Description  Якщо чат вже існує, повертає його ID.
+// @Description  Якщо чату не існує, створює його, та повертає ID чату.
+// @Description  Якщо другий користувач є поточним користувачем,
+// @Description  створює (за необхідністю) персональний чат та повертає його ID.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        userId		path     int   true  "User ID"
+// @Success      200 	{object} ChatIdResponse			"return chat ID"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "wrong users"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "wrong user"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "create chat error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "add active user to chat error"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "add second user to chat error"
+// @Router       /chats/{userId}/private [get]
 func (h *ChatHandler) PrivateChat(c echo.Context) error {
 
 	// Отримання власного ID
@@ -488,7 +636,7 @@ func (h *ChatHandler) PrivateChat(c echo.Context) error {
 				UserId: userId,
 			})
 			if errNewAdd != nil {
-				responses.NewErrorResponse(c, http.StatusInternalServerError, "add user to chat error")
+				responses.NewErrorResponse(c, http.StatusInternalServerError, "add second user to chat error")
 				return nil
 			}
 		}
@@ -504,6 +652,18 @@ func (h *ChatHandler) PrivateChat(c echo.Context) error {
 	return nil
 }
 
+// SearchChat godoc
+// @Summary      Get found users
+// @Description  Отримує частину імені користувача.
+// @Description  Повертає список користувачів, ім'я яких повністю або частково збігається.
+// @Security ApiKeyAuth
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        name		path     string   true  "Slice of chats"
+// @Success      200 	{object} ChatListResponse			"return found users"
+// @Failure 	 500 	{object} responses.ErrorResponse	 "found chats error"
+// @Router       /chats/search/{name} [get]
 func (h *ChatHandler) SearchChat(c echo.Context) error {
 
 	// Отримуємо сегмент назви чату

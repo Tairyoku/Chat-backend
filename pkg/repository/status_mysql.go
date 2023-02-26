@@ -38,9 +38,6 @@ func (s *StatusRepository) UpdateStatus(status models.Status) error {
 func (s *StatusRepository) DeleteStatus(status models.Status) error {
 	query := fmt.Sprintf("DELETE FROM %s stl WHERE relationship = ? and (recipient_id = ? and sender_id = ?) or (sender_id = ? and recipient_id = ?)", StatusesTable)
 	err := s.db.Raw(query, status.Relationship, status.SenderId, status.RecipientId, status.SenderId, status.RecipientId).Scan(&status).Error
-	//err := s.db.Table(StatusesTable).Where("sender_id = ? and recipient_id = ? and relationship = ?",
-	//status.SenderId, status.RecipientId, status.Relationship).Delete(&models.Status{}).Error
-	//err := s.db.Table(StatusesTable).Delete(&status).Error
 	return err
 }
 
@@ -58,11 +55,11 @@ func (s *StatusRepository) GetFriends(userId int) ([]models.User, error) {
 	}
 	result = usersId
 
-	queryt := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chul ON chul.recipient_id = u.id WHERE relationship = ? and sender_id = ?", UsersTable, StatusesTable)
-	errt := tx.Raw(queryt, StatusFriends, userId).Scan(&usersId).Error
-	if errt != nil {
+	querySec := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chul ON chul.recipient_id = u.id WHERE relationship = ? and sender_id = ?", UsersTable, StatusesTable)
+	errSec := tx.Raw(querySec, StatusFriends, userId).Scan(&usersId).Error
+	if errSec != nil {
 		tx.Rollback()
-		return nil, errt
+		return nil, errSec
 	}
 	for i := range usersId {
 		result = append(result, usersId[i])
@@ -73,8 +70,6 @@ func (s *StatusRepository) GetFriends(userId int) ([]models.User, error) {
 // GetBlackList отримує ID користувача ТА повертає масив ЗАБЛОКОВАНИХ користувачів
 func (s *StatusRepository) GetBlackList(userId int) ([]models.User, error) {
 	var users []models.User
-	//query := fmt.Sprintf("SELECT recipient_id FROM %s WHERE relationship = ? and sender_id = ?", StatusesTable)
-	//err := s.db.Raw(query, StatusBL, userId).Scan(&usersId).Error
 	query := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chul ON chul.recipient_id = u.id WHERE relationship = ? and sender_id = ?", UsersTable, StatusesTable)
 	err := s.db.Raw(query, StatusBL, userId).Scan(&users).Error
 
@@ -85,8 +80,6 @@ func (s *StatusRepository) GetBlackList(userId int) ([]models.User, error) {
 // ЗАБЛОКУВАЛИ його
 func (s *StatusRepository) GetBlackListToUser(userId int) ([]models.User, error) {
 	var users []models.User
-	//query := fmt.Sprintf("SELECT sender_id FROM %s WHERE relationship = ? and recipient_id = ?", StatusesTable)
-	//err := s.db.Raw(query, StatusBL, userId).Scan(&usersId).Error
 	query := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chul ON chul.sender_id = u.id WHERE relationship = ? and recipient_id = ?", UsersTable, StatusesTable)
 	err := s.db.Raw(query, StatusBL, userId).Scan(&users).Error
 
@@ -97,8 +90,6 @@ func (s *StatusRepository) GetBlackListToUser(userId int) ([]models.User, error)
 // ОТРИМАЛИ його запрошення у друзі
 func (s *StatusRepository) GetSentInvites(userId int) ([]models.User, error) {
 	var users []models.User
-	//query := fmt.Sprintf("SELECT recipient_id FROM %s WHERE relationship = ? and sender_id = ?", StatusesTable)
-	//err := s.db.Raw(query, StatusInvitation, userId).Scan(&usersId).Error
 	query := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chul ON chul.recipient_id = u.id WHERE relationship = ? and sender_id = ?", UsersTable, StatusesTable)
 	err := s.db.Raw(query, StatusInvitation, userId).Scan(&users).Error
 
@@ -109,8 +100,6 @@ func (s *StatusRepository) GetSentInvites(userId int) ([]models.User, error) {
 // НАДІСЛАЛИ йому запрошення в друзі
 func (s *StatusRepository) GetInvites(userId int) ([]models.User, error) {
 	var users []models.User
-	//query := fmt.Sprintf("SELECT sender_id FROM %s WHERE relationship = ? and recipient_id = ?", StatusesTable)
-	//err := s.db.Raw(query, StatusInvitation, userId).Scan(&usersId).Error
 	query := fmt.Sprintf("SELECT u.id, u.username, u.icon FROM %s u INNER JOIN %s chul ON chul.sender_id = u.id WHERE relationship = ? and recipient_id = ?", UsersTable, StatusesTable)
 	err := s.db.Raw(query, StatusInvitation, userId).Scan(&users).Error
 
@@ -121,7 +110,6 @@ func (s *StatusRepository) GetInvites(userId int) ([]models.User, error) {
 // мають збіг з аргументом
 func (s *StatusRepository) SearchUser(username string) ([]models.User, error) {
 	var users []models.User
-	//err := s.db.Table(UsersTable).Where("username LIKE ?", fmt.Sprintf("%%%s%%", username)).Find(&users).Error
 	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE username LIKE ?", UsersTable)
 	err := s.db.Raw(query, fmt.Sprintf("%%%s%%", username)).Scan(&users).Error
 	return users, err
@@ -132,6 +120,5 @@ func (s *StatusRepository) GetUserById(userId int) (models.User, error) {
 	var user models.User
 	query := fmt.Sprintf("SELECT id, username, icon FROM %s WHERE id = ?", UsersTable)
 	err := s.db.Raw(query, userId).Scan(&user).Error
-	//err := a.db.Table(UsersTable).Select("id", "username", "icon").First(&user, userId).Error
 	return user, err
 }
