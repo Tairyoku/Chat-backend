@@ -1,9 +1,5 @@
 package websocket
 
-import (
-	"fmt"
-)
-
 type subscription struct {
 	conn *connection
 	room string
